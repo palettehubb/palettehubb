@@ -18,7 +18,7 @@ export default function Footer() {
           </div>
 
           {/* Navigation Links matching reference */}
-          <nav className="flex items-center gap-6 sm:gap-8 text-sm font-medium text-neutral-300">
+          <nav className="flex items-center gap-6 sm:gap-8 text-sm font-medium text-neutral-300 flex-wrap justify-center">
             <Link href="/" className="hover:text-white transition-colors">
               Home
             </Link>
@@ -27,6 +27,12 @@ export default function Footer() {
             </Link>
             <Link href="/track-order" className="hover:text-white transition-colors">
               Track Order
+            </Link>
+            <Link href="/terms" className="hover:text-white transition-colors">
+              Terms & Conditions
+            </Link>
+            <Link href="/privacy" className="hover:text-white transition-colors">
+              Privacy Policy
             </Link>
             <Link href="/admin" className="hover:text-white transition-colors">
               Admin
@@ -103,13 +109,23 @@ export default function Footer() {
             <span>•</span>
             <span>100% Buyer Protection</span>
             <span>•</span>
-            <span>Razorpay Secure</span>
+            <span>Stripe Secure</span>
           </div>
         </div>
 
         {/* Bottom Row matching reference */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
-          <p>© 2026 Palette Hubb. All rights reserved.</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <p>© 2026 Palette Hubb. All rights reserved.</p>
+            <span>•</span>
+            <Link href="/terms" className="hover:text-neutral-300 transition-colors underline underline-offset-4">
+              Terms & Conditions
+            </Link>
+            <span>•</span>
+            <Link href="/privacy" className="hover:text-neutral-300 transition-colors underline underline-offset-4">
+              Privacy Policy
+            </Link>
+          </div>
           <p className="tracking-wider uppercase font-medium text-neutral-400">
             Fashion &nbsp;|&nbsp; Accessories &nbsp;|&nbsp; Lifestyle
           </p>

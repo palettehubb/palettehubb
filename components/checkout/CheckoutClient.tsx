@@ -42,6 +42,7 @@ export default function CheckoutClient() {
   });
 
   const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'test_pay'>('test_pay');
+  const [agreedToReturnPolicy, setAgreedToReturnPolicy] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -61,6 +62,11 @@ export default function CheckoutClient() {
 
     if (!address.fullName || !address.email || !address.phone || !address.street || !address.city || !address.pincode) {
       setErrorMessage('Please fill in all required shipping address fields.');
+      return;
+    }
+
+    if (!agreedToReturnPolicy) {
+      setErrorMessage('Please agree to the 3-Day Return Policy and mandatory unboxing video requirement to place your order.');
       return;
     }
 
@@ -477,6 +483,39 @@ export default function CheckoutClient() {
                 </div>
               </div>
 
+              {/* Mandatory Policy Agreement Checkbox */}
+              <div className="pt-1">
+                <label className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer select-none transition-colors ${
+                  !agreedToReturnPolicy && errorMessage?.includes('Return Policy')
+                    ? 'bg-red-50/60 border-red-300'
+                    : 'bg-neutral-50 hover:bg-neutral-100/70 border-neutral-200/80'
+                }`}>
+                  <input
+                    type="checkbox"
+                    checked={agreedToReturnPolicy}
+                    onChange={(e) => {
+                      setAgreedToReturnPolicy(e.target.checked);
+                      if (errorMessage?.includes('Return Policy')) {
+                        setErrorMessage(null);
+                      }
+                    }}
+                    className="mt-0.5 w-4 h-4 rounded border-neutral-300 text-[#985842] focus:ring-[#985842] accent-[#985842] cursor-pointer shrink-0"
+                  />
+                  <span className="text-xs text-neutral-600 leading-snug">
+                    I agree to the{' '}
+                    <Link
+                      href="/terms"
+                      target="_blank"
+                      className="font-semibold text-neutral-900 underline underline-offset-2 hover:text-[#985842]"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      3-Day Return Policy
+                    </Link>{' '}
+                    and the mandatory unboxing video requirement for damages.
+                  </span>
+                </label>
+              </div>
+
               {/* Submit CTA */}
               <button
                 type="submit"
@@ -499,11 +538,15 @@ export default function CheckoutClient() {
               <div className="space-y-2 pt-2 border-t border-neutral-100 text-[11px] text-neutral-500">
                 <div className="flex items-center gap-2 text-neutral-700">
                   <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>Server-validated pricing & payment signature</span>
+                  <span>Server-validated pricing & Stripe secure checkout</span>
                 </div>
                 <div className="flex items-center gap-2 text-neutral-700">
                   <Truck className="w-4 h-4 text-neutral-800" />
                   <span>Automated dropship order routing to supplier</span>
+                </div>
+                <div className="flex items-center gap-2 text-neutral-500">
+                  <Lock className="w-4 h-4 text-neutral-400" />
+                  <span>256-bit SSL encrypted • View our <Link href="/privacy" target="_blank" className="underline hover:text-neutral-800">Privacy Policy</Link></span>
                 </div>
               </div>
 
