@@ -32,7 +32,9 @@ export default function PayPalButton({
   const containerRef = useRef<HTMLDivElement>(null);
   const [sdkReady, setSdkReady] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
+  const clientId =
+    process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ||
+    'Af_M98Cn4XAf4ZlM0AEZEWqOUurcjhIWnS9CKfxv81gAddrLiRhZRQj8OQrVxRTd0euOdpgQjjl7SFYJ';
 
   // Load the PayPal JS SDK dynamically
   useEffect(() => {

@@ -27,8 +27,12 @@ export function getPayPalBaseUrl(): string {
  * Uses in-memory caching to avoid redundant requests.
  */
 export async function getPayPalAccessToken(): Promise<string> {
-  const clientId = process.env.PAYPAL_CLIENT_ID;
-  const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
+  const clientId =
+    process.env.PAYPAL_CLIENT_ID ||
+    'Af_M98Cn4XAf4ZlM0AEZEWqOUurcjhIWnS9CKfxv81gAddrLiRhZRQj8OQrVxRTd0euOdpgQjjl7SFYJ';
+  const clientSecret =
+    process.env.PAYPAL_CLIENT_SECRET ||
+    'EBYn3e_kSk3-oAn_g-hxZO7xwOzfnosWknsqeIk7jDDJlbZX_OPBazwXA5MlZTfXXm-DH3J151fwQ7eC';
 
   if (!clientId || !clientSecret) {
     throw new Error('PayPal Client ID or Secret is missing in environment variables.');

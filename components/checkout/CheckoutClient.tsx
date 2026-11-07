@@ -43,7 +43,7 @@ export default function CheckoutClient() {
     country: 'India',
   });
 
-  const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'test_pay' | 'paypal'>('paypal');
+  const paymentMethod = 'paypal';
   const [agreedToReturnPolicy, setAgreedToReturnPolicy] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -351,26 +351,15 @@ export default function CheckoutClient() {
               </h2>
 
               <div className="space-y-3">
-                {/* PayPal Payment Option */}
-                <label
-                  className={`flex items-start gap-3 p-4 rounded-2xl border-2 transition-all cursor-pointer ${
-                    paymentMethod === 'paypal'
-                      ? 'border-[#0070ba] bg-sky-50/50 shadow-sm'
-                      : 'border-neutral-200 hover:border-neutral-300'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="paypal"
-                    checked={paymentMethod === 'paypal'}
-                    onChange={() => setPaymentMethod('paypal')}
-                    className="mt-1 accent-[#0070ba]"
-                  />
+                {/* PayPal Payment Gateway */}
+                <div className="p-4 rounded-2xl border-2 border-[#0070ba] bg-sky-50/50 shadow-sm flex items-start gap-3">
+                  <div className="mt-0.5 w-5 h-5 rounded-full bg-[#0070ba] text-white flex items-center justify-center text-xs font-bold shrink-0">
+                    ✓
+                  </div>
                   <div className="flex-1">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
                       <span className="text-xs sm:text-sm font-bold text-neutral-900 flex items-center gap-2">
-                        <span>PayPal / Cards</span>
+                        <span>PayPal Express & Cards</span>
                         <span className="text-[10px] bg-[#0070ba] text-white font-bold px-2 py-0.5 rounded">
                           GLOBAL & CARDS
                         </span>
@@ -379,71 +368,17 @@ export default function CheckoutClient() {
                         PayPal
                       </span>
                     </div>
-                    <p className="text-[11px] text-neutral-500 mt-1">
-                      Pay securely with Debit/Credit card (Visa, MasterCard, Amex) or PayPal account in USD.
+                    <p className="text-[11px] text-neutral-600 mt-1">
+                      Pay securely with your PayPal account or Debit / Credit cards (Visa, MasterCard, Amex, Discover).
                     </p>
-                  </div>
-                </label>
-
-                {/* Instant Sandbox / Test Pay Option */}
-                <label
-                  className={`flex items-start gap-3 p-4 rounded-2xl border-2 transition-all cursor-pointer ${
-                    paymentMethod === 'test_pay'
-                      ? 'border-black bg-neutral-50/70 shadow-sm'
-                      : 'border-neutral-200 hover:border-neutral-300'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="test_pay"
-                    checked={paymentMethod === 'test_pay'}
-                    onChange={() => setPaymentMethod('test_pay')}
-                    className="mt-1 accent-black"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs sm:text-sm font-bold text-neutral-900">
-                        Online Test Payment (Pre-configured Evaluation)
-                      </span>
-                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">
-                        RECOMMENDED
-                      </span>
+                    <div className="mt-2.5 flex items-center gap-2 text-[10px] text-neutral-500 font-semibold">
+                      <span className="bg-white px-2 py-0.5 rounded border border-neutral-200">Visa</span>
+                      <span className="bg-white px-2 py-0.5 rounded border border-neutral-200">MasterCard</span>
+                      <span className="bg-white px-2 py-0.5 rounded border border-neutral-200">Amex</span>
+                      <span className="bg-white px-2 py-0.5 rounded border border-neutral-200">PayPal Credit</span>
                     </div>
-                    <p className="text-[11px] text-neutral-500 mt-1">
-                      Simulates complete Razorpay payment verification on server, generates real tracking ID and dropshipping workflow immediately without test cards.
-                    </p>
                   </div>
-                </label>
-
-                {/* Razorpay Gateway Option */}
-                <label
-                  className={`flex items-start gap-3 p-4 rounded-2xl border-2 transition-all cursor-pointer ${
-                    paymentMethod === 'razorpay'
-                      ? 'border-black bg-neutral-50/70 shadow-sm'
-                      : 'border-neutral-200 hover:border-neutral-300'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="razorpay"
-                    checked={paymentMethod === 'razorpay'}
-                    onChange={() => setPaymentMethod('razorpay')}
-                    className="mt-1 accent-black"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs sm:text-sm font-bold text-neutral-900">
-                        Razorpay Gateway (UPI / Cards / NetBanking)
-                      </span>
-                      <CreditCard className="w-4 h-4 text-neutral-400" />
-                    </div>
-                    <p className="text-[11px] text-neutral-500 mt-1">
-                      Supports Indian UPI (Google Pay, PhonePe, Paytm), debit/credit cards, and net banking.
-                    </p>
-                  </div>
-                </label>
+                </div>
               </div>
             </div>
 
@@ -555,47 +490,27 @@ export default function CheckoutClient() {
                 </label>
               </div>
 
-              {/* Payment Action: PayPal Smart Buttons OR Traditional Checkout CTA */}
-              {paymentMethod === 'paypal' ? (
-                <div className="pt-1">
-                  <PayPalButton
-                    customer={address}
-                    items={items}
-                    couponCode={appliedCoupon?.code}
-                    totalINR={total}
-                    disabled={!agreedToReturnPolicy}
-                    onSuccess={(confirmedOrder) => {
-                      handleOrderSuccess(confirmedOrder);
-                    }}
-                    onError={(err) => {
-                      setErrorMessage(err);
-                    }}
-                  />
-                  {!agreedToReturnPolicy && (
-                    <p className="text-[11px] text-amber-700 text-center mt-2">
-                      Please check the Return Policy agreement above to activate PayPal checkout.
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <button
-                  type="submit"
-                  disabled={processing}
-                  className="w-full bg-[#985842] text-white text-sm font-bold py-4 px-6 rounded-2xl flex items-center justify-center gap-2 hover:bg-[#834633] transition-all shadow-lg active:scale-[0.99] disabled:opacity-60 cursor-pointer"
-                >
-                  {processing ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Processing Secure Payment...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Confirm & Pay ${total.toFixed(2)}</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-              )}
+              {/* Payment Action: PayPal Official Smart Buttons */}
+              <div className="pt-1">
+                <PayPalButton
+                  customer={address}
+                  items={items}
+                  couponCode={appliedCoupon?.code}
+                  totalINR={total}
+                  disabled={!agreedToReturnPolicy}
+                  onSuccess={(confirmedOrder) => {
+                    handleOrderSuccess(confirmedOrder);
+                  }}
+                  onError={(err) => {
+                    setErrorMessage(err);
+                  }}
+                />
+                {!agreedToReturnPolicy && (
+                  <p className="text-[11px] text-amber-700 text-center mt-2">
+                    Please check the Return Policy agreement above to activate PayPal checkout.
+                  </p>
+                )}
+              </div>
 
               <div className="space-y-2 pt-2 border-t border-neutral-100 text-[11px] text-neutral-500">
                 <div className="flex items-center gap-2 text-neutral-700">
