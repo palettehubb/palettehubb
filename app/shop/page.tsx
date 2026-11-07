@@ -1,9 +1,9 @@
 import React, { Suspense } from 'react';
-import { connection } from 'next/server';
 import ShopClient from '@/components/shop/ShopClient';
 import connectToDatabase from '@/lib/db';
 import Product from '@/models/Product';
 import Category from '@/models/Category';
+import memoryStore from '@/lib/memoryStore';
 import { IProduct, ICategory } from '@/types';
 
 export const metadata = {
@@ -12,12 +12,13 @@ export const metadata = {
     'Browse our complete catalog of oversized streetwear tees, formal blazers, caps, luxury watches, and cuban chains.',
 };
 
+// Pre-rendered with cacheComponents for instant page load
+
 async function getShopData(): Promise<{
   products: IProduct[];
   categories: string[];
   categoriesData: ICategory[];
 }> {
-  await connection();
   let categoriesData: ICategory[] = [];
   let products: IProduct[] = [];
 
@@ -37,34 +38,30 @@ async function getShopData(): Promise<{
       }
     }
   } catch (e) {
-    console.error('Error fetching shop data from DB:', e);
+    console.warn('Error fetching shop data from DB, using fallback:', e);
+  }
+
+  if (categoriesData.length === 0 && memoryStore.categories.length > 0) {
+    categoriesData = memoryStore.categories;
+  }
+  if (products.length === 0 && memoryStore.products.length > 0) {
+    products = memoryStore.products;
   }
 
   const categories = Array.from(new Set(products.map((p) => p.category)));
   return { products, categories, categoriesData };
 }
 
-async function ShopContent() {
+export default async function ShopPage() {
   const { products, categories, categoriesData } = await getShopData();
-  return (
-    <ShopClient
-      initialProducts={products}
-      categories={categories}
-      categoriesData={categoriesData}
-    />
-  );
-}
 
-export default function ShopPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-[#f7f5ee] flex items-center justify-center py-20">
-          <div className="w-10 h-10 border-4 border-black border-t-transparent rounded-full animate-spin" />
-        </div>
-      }
-    >
-      <ShopContent />
+    <Suspense fallback={<div className="min-h-screen bg-[#f7f5ee]" />}>
+      <ShopClient
+        initialProducts={products}
+        categories={categories}
+        categoriesData={categoriesData}
+      />
     </Suspense>
   );
 }

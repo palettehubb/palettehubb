@@ -82,8 +82,8 @@ export default function AdminDashboardClient() {
   const [prodSubcategory, setProdSubcategory] = useState('');
   const [isCustomSubcategory, setIsCustomSubcategory] = useState(false);
   const [customSubcategoryInput, setCustomSubcategoryInput] = useState('');
-  const [prodPrice, setProdPrice] = useState('899');
-  const [prodOrigPrice, setProdOrigPrice] = useState('1499');
+  const [prodPrice, setProdPrice] = useState('29.99');
+  const [prodOrigPrice, setProdOrigPrice] = useState('49.99');
   const [prodStock, setProdStock] = useState('25');
   const [prodDesc, setProdDesc] = useState('');
   const [prodSupplierId, setProdSupplierId] = useState('sup_1');
@@ -137,8 +137,8 @@ export default function AdminDashboardClient() {
   };
 
   // Fetch all data
-  const fetchAdminData = async () => {
-    setLoading(true);
+  const fetchAdminData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [statsRes, ordersRes, prodsRes, suppRes, catRes, coupRes] = await Promise.all([
         fetch('/api/admin/stats'),
@@ -167,7 +167,7 @@ export default function AdminDashboardClient() {
     } catch (e) {
       console.error('Error fetching admin info', e);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -207,7 +207,7 @@ export default function AdminDashboardClient() {
             setOrders((prev) => [newOrd, ...prev.filter((o) => o._id !== newOrd._id)]);
             showDeviceNotification(
               `🔔 New Order Received #${newOrd.orderNumber}`,
-              `Customer: ${newOrd.customer.fullName} — Amount: ₹${newOrd.total.toLocaleString('en-IN')}`,
+              `Customer: ${newOrd.customer.fullName} — Amount: $${newOrd.total.toFixed(2)}`,
               '/admin'
             );
             showToast(`New order ${newOrd.orderNumber} placed by ${newOrd.customer.fullName}!`);
@@ -321,8 +321,8 @@ export default function AdminDashboardClient() {
     setProdSubcategory(catObj?.subcategories?.[0] || '');
     setIsCustomSubcategory(false);
     setCustomSubcategoryInput('');
-    setProdPrice('899');
-    setProdOrigPrice('1499');
+    setProdPrice('29.99');
+    setProdOrigPrice('49.99');
     setProdStock('20');
     setProdDesc('');
     setProdSupplierId(suppliers[0]?._id || 'sup_1');
@@ -417,7 +417,12 @@ export default function AdminDashboardClient() {
           body: JSON.stringify(payload),
         });
         const data = await res.json();
-        if (data.success) {
+        if (data.success && data.product) {
+          setProducts((prev) =>
+            prev.map((p) =>
+              p.slug === editingProductSlug || p._id === editingProductSlug ? data.product : p
+            )
+          );
           showToast(`Product "${prodName}" updated successfully!`);
         }
       } else {
@@ -428,13 +433,14 @@ export default function AdminDashboardClient() {
           body: JSON.stringify(payload),
         });
         const data = await res.json();
-        if (data.success) {
+        if (data.success && data.product) {
+          setProducts((prev) => [data.product, ...prev]);
           showToast(`New product "${prodName}" added to catalog!`);
         }
       }
 
       setProductModalOpen(false);
-      fetchAdminData();
+      fetchAdminData(true);
     } catch (e) {
       console.error('Error saving product', e);
       alert('Failed to save product.');
@@ -443,9 +449,12 @@ export default function AdminDashboardClient() {
     }
   };
 
-  // Quick Restock Product
+  // Quick Restock Product (Instant Optimistic Update)
   const handleQuickRestock = async (product: IProduct, addQty: number) => {
     const newStock = Math.max(0, product.stock + addQty);
+    setProducts((prev) =>
+      prev.map((p) => (p.slug === product.slug ? { ...p, stock: newStock } : p))
+    );
     try {
       const res = await fetch(`/api/products/${product.slug}`, {
         method: 'PUT',
@@ -455,16 +464,20 @@ export default function AdminDashboardClient() {
       const data = await res.json();
       if (data.success) {
         showToast(`Stock updated: ${product.name} now has ${newStock} units`);
-        fetchAdminData();
+        fetchAdminData(true);
       }
     } catch (err) {
       console.error(err);
+      fetchAdminData(true);
     }
   };
 
-  // Toggle Best Selling / Featured
+  // Toggle Best Selling / Featured (Instant Optimistic Update)
   const handleToggleBestSelling = async (product: IProduct) => {
     const updatedFeatured = !product.isFeatured;
+    setProducts((prev) =>
+      prev.map((p) => (p.slug === product.slug ? { ...p, isFeatured: updatedFeatured } : p))
+    );
     try {
       const res = await fetch(`/api/products/${product.slug}`, {
         method: 'PUT',
@@ -478,29 +491,32 @@ export default function AdminDashboardClient() {
             ? `⭐ "${product.name}" marked as Best Selling!`
             : `Removed "${product.name}" from Best Selling`
         );
-        fetchAdminData();
+        fetchAdminData(true);
       }
     } catch (err) {
       console.error(err);
+      fetchAdminData(true);
     }
   };
 
-  // Delete Product
+  // Delete Product (Instant Optimistic Update)
   const handleDeleteProduct = async (slug: string, name: string) => {
     if (!confirm(`Are you sure you want to delete product "${name}"?`)) return;
+    setProducts((prev) => prev.filter((p) => p.slug !== slug && p._id !== slug));
     try {
       const res = await fetch(`/api/products/${slug}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
         showToast(`Product "${name}" removed from inventory.`);
-        fetchAdminData();
+        fetchAdminData(true);
       }
     } catch (err) {
       console.error(err);
+      fetchAdminData(true);
     }
   };
 
-  // Save Order update
+  // Save Order update (Instant Optimistic Update)
   const handleSaveOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedOrder) return;
@@ -520,9 +536,14 @@ export default function AdminDashboardClient() {
 
       const data = await res.json();
       if (data.success) {
+        if (data.order) {
+          setOrders((prev) =>
+            prev.map((o) => (o.orderNumber === selectedOrder.orderNumber ? data.order : o))
+          );
+        }
         showToast(`Order ${selectedOrder.orderNumber} fulfillment updated!`);
         setSelectedOrder(null);
-        fetchAdminData();
+        fetchAdminData(true);
       }
     } catch (e) {
       console.error(e);
@@ -555,12 +576,15 @@ export default function AdminDashboardClient() {
       });
       const data = await res.json();
       if (data.success) {
+        if (data.category) {
+          setCategories((prev) => [data.category, ...prev]);
+        }
         showToast(`Category "${newCatName}" added!`);
         setCatModalOpen(false);
         setNewCatName('');
         setNewCatDesc('');
         setNewCatSubcategories('');
-        fetchAdminData();
+        fetchAdminData(true);
       }
     } catch (err) {
       console.error(err);
@@ -586,9 +610,16 @@ export default function AdminDashboardClient() {
       });
       const data = await res.json();
       if (data.success) {
+        setCategories((prev) =>
+          prev.map((c) =>
+            c.slug === categorySlug
+              ? { ...c, subcategories: [...(c.subcategories || []), subName] }
+              : c
+          )
+        );
         showToast(`Subcategory "${subName}" added to ${categoryName}!`);
         setQuickSubcatInputs((prev) => ({ ...prev, [categorySlug]: '' }));
-        fetchAdminData();
+        fetchAdminData(true);
       } else {
         showToast(data.error || 'Failed to add subcategory');
       }
@@ -601,6 +632,13 @@ export default function AdminDashboardClient() {
   // Remove Subcategory from an existing category
   const handleRemoveSubcategory = async (categorySlug: string, subName: string) => {
     if (!confirm(`Remove subcategory "${subName}"?`)) return;
+    setCategories((prev) =>
+      prev.map((c) =>
+        c.slug === categorySlug
+          ? { ...c, subcategories: (c.subcategories || []).filter((s) => s !== subName) }
+          : c
+      )
+    );
     try {
       const res = await fetch('/api/categories', {
         method: 'PATCH',
@@ -613,25 +651,28 @@ export default function AdminDashboardClient() {
       const data = await res.json();
       if (data.success) {
         showToast(`Subcategory "${subName}" removed.`);
-        fetchAdminData();
+        fetchAdminData(true);
       }
     } catch (err) {
       console.error(err);
+      fetchAdminData(true);
     }
   };
 
-  // Delete Category
+  // Delete Category (Instant Optimistic Update)
   const handleDeleteCategory = async (slug: string, name: string) => {
     if (!confirm(`Delete category "${name}"?`)) return;
+    setCategories((prev) => prev.filter((c) => c.slug !== slug));
     try {
       const res = await fetch(`/api/categories?slug=${slug}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
         showToast(`Category "${name}" deleted.`);
-        fetchAdminData();
+        fetchAdminData(true);
       }
     } catch (err) {
       console.error(err);
+      fetchAdminData(true);
     }
   };
 
@@ -657,6 +698,9 @@ export default function AdminDashboardClient() {
       });
       const data = await res.json();
       if (data.success) {
+        if (data.supplier) {
+          setSuppliers((prev) => [data.supplier, ...prev]);
+        }
         showToast(`Supplier partner "${newSupName}" added!`);
         setSupModalOpen(false);
         setNewSupName('');
@@ -665,7 +709,7 @@ export default function AdminDashboardClient() {
         setNewSupPhone('');
         setNewSupNotes('');
         setNewSupPassword('');
-        fetchAdminData();
+        fetchAdminData(true);
       }
     } catch (err) {
       console.error(err);
@@ -674,18 +718,20 @@ export default function AdminDashboardClient() {
     }
   };
 
-  // Delete Supplier
+  // Delete Supplier (Instant Optimistic Update)
   const handleDeleteSupplier = async (id: string, name: string) => {
     if (!confirm(`Remove supplier "${name}"?`)) return;
+    setSuppliers((prev) => prev.filter((s) => s._id !== id));
     try {
       const res = await fetch(`/api/admin/suppliers?id=${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
         showToast(`Supplier "${name}" deleted.`);
-        fetchAdminData();
+        fetchAdminData(true);
       }
     } catch (err) {
       console.error(err);
+      fetchAdminData(true);
     }
   };
 
@@ -708,10 +754,13 @@ export default function AdminDashboardClient() {
       });
       const data = await res.json();
       if (data.success) {
+        if (data.coupon) {
+          setCoupons((prev) => [data.coupon, ...prev]);
+        }
         showToast(`Offer Coupon "${newCouponCode.toUpperCase()}" created!`);
         setCouponModalOpen(false);
         setNewCouponCode('');
-        fetchAdminData();
+        fetchAdminData(true);
       }
     } catch (err) {
       console.error(err);
@@ -720,8 +769,11 @@ export default function AdminDashboardClient() {
     }
   };
 
-  // Toggle Coupon status
+  // Toggle Coupon status (Instant Optimistic Update)
   const handleToggleCoupon = async (c: ICoupon) => {
+    setCoupons((prev) =>
+      prev.map((cp) => (cp.code === c.code ? { ...cp, isActive: !cp.isActive } : cp))
+    );
     try {
       const res = await fetch('/api/coupons', {
         method: 'PUT',
@@ -731,10 +783,11 @@ export default function AdminDashboardClient() {
       const data = await res.json();
       if (data.success) {
         showToast(`Coupon ${c.code} is now ${!c.isActive ? 'Active' : 'Paused'}`);
-        fetchAdminData();
+        fetchAdminData(true);
       }
     } catch (err) {
       console.error(err);
+      fetchAdminData(true);
     }
   };
 
@@ -802,7 +855,7 @@ export default function AdminDashboardClient() {
 
           <div className="flex items-center gap-2 flex-wrap">
             <button
-              onClick={fetchAdminData}
+              onClick={() => fetchAdminData(false)}
               disabled={loading}
               className="inline-flex items-center justify-center gap-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-semibold px-3.5 py-2.5 rounded-xl transition-colors cursor-pointer"
             >
@@ -1107,10 +1160,10 @@ export default function AdminDashboardClient() {
                           </td>
 
                           <td className="py-3.5">
-                            <p className="font-bold text-black text-sm">₹ {p.price.toLocaleString('en-IN')}</p>
+                            <p className="font-bold text-black text-sm">$ {p.price.toFixed(2)}</p>
                             {p.originalPrice && (
                               <p className="text-[10px] text-neutral-400 line-through">
-                                ₹ {p.originalPrice.toLocaleString('en-IN')}
+                                $ {p.originalPrice.toFixed(2)}
                               </p>
                             )}
                           </td>
@@ -1258,7 +1311,7 @@ export default function AdminDashboardClient() {
                           ))}
                         </td>
                         <td className="py-4 font-bold text-black text-sm">
-                          ₹ {ord.total.toLocaleString('en-IN')}
+                          $ {ord.total.toFixed(2)}
                         </td>
                         <td className="py-4">
                           {ord.supplierOrderRef ? (
@@ -1566,7 +1619,7 @@ export default function AdminDashboardClient() {
                         </td>
 
                         <td className="py-3.5 font-medium text-neutral-600">{p.category}</td>
-                        <td className="py-3.5 font-bold text-black">₹ {p.price.toLocaleString('en-IN')}</td>
+                        <td className="py-3.5 font-bold text-black">$ {p.price.toFixed(2)}</td>
                         
                         <td className="py-3.5">
                           {p.stock <= 0 ? (
@@ -1658,10 +1711,10 @@ export default function AdminDashboardClient() {
                   </div>
 
                   <p className="text-xl font-black text-neutral-900 mt-2">
-                    {c.discountType === 'percentage' ? `${c.value}% OFF` : `₹ ${c.value} OFF`}
+                    {c.discountType === 'percentage' ? `${c.value}% OFF` : `$ ${c.value} OFF`}
                   </p>
                   <p className="text-xs text-neutral-500 mt-1">
-                    Minimum order amount: <strong>₹ {c.minOrderAmount || 0}</strong>
+                    Minimum order amount: <strong>$ {c.minOrderAmount || 0}</strong>
                   </p>
 
                   <div className="mt-4 pt-4 border-t border-neutral-100 flex items-center justify-between">
@@ -1805,7 +1858,7 @@ export default function AdminDashboardClient() {
                   {pendingFulfillmentOrders.map((ord) => (
                     <div key={ord._id} className="py-3 flex items-center justify-between gap-4">
                       <div>
-                        <p className="font-bold text-neutral-900">{ord.orderNumber} — ₹{ord.total}</p>
+                        <p className="font-bold text-neutral-900">{ord.orderNumber} — ${ord.total.toFixed(2)}</p>
                         <p className="text-[11px] text-neutral-500">{ord.customer.fullName} ({ord.customer.city})</p>
                       </div>
                       <button
@@ -1838,7 +1891,7 @@ export default function AdminDashboardClient() {
                   Total Gross Sales
                 </span>
                 <p className="text-2xl sm:text-3xl font-black text-neutral-900">
-                  ₹ {stats?.totalSales?.toLocaleString('en-IN') || '12,840'}
+                  $ {stats?.totalSales ? stats.totalSales.toFixed(2) : '12,840.00'}
                 </p>
                 <span className="text-[11px] text-emerald-600 font-semibold mt-1 block">
                   ↑ Verified ecommerce payments
@@ -1900,7 +1953,7 @@ export default function AdminDashboardClient() {
                         <p className="text-[11px] text-neutral-500">{o.customer.fullName}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-black">₹ {o.total.toLocaleString('en-IN')}</p>
+                        <p className="font-bold text-black">$ {o.total.toFixed(2)}</p>
                         <span className="text-[10px] font-semibold text-neutral-500">{o.orderStatus}</span>
                       </div>
                     </div>
@@ -1929,7 +1982,7 @@ export default function AdminDashboardClient() {
                         </div>
                       </div>
                       <div className="text-right font-bold text-black">
-                        ₹ {p.price.toLocaleString('en-IN')}
+                        $ {p.price.toFixed(2)}
                       </div>
                     </div>
                   ))}
@@ -2068,24 +2121,32 @@ export default function AdminDashboardClient() {
                 {/* Price, Original Price, Initial Stock */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="block font-bold uppercase mb-1">Selling Price (₹) *</label>
-                    <input
-                      type="number"
-                      required
-                      value={prodPrice}
-                      onChange={(e) => setProdPrice(e.target.value)}
-                      className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-black"
-                    />
+                    <label className="block font-bold uppercase mb-1">Selling Price ($) *</label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-2.5 text-neutral-500 font-bold text-xs pointer-events-none">$</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        value={prodPrice}
+                        onChange={(e) => setProdPrice(e.target.value)}
+                        className="w-full bg-neutral-50 border border-neutral-200 rounded-xl pl-7 pr-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-black"
+                      />
+                    </div>
                   </div>
                   <div>
-                    <label className="block font-bold uppercase mb-1">Original Price (₹)</label>
-                    <input
-                      type="number"
-                      value={prodOrigPrice}
-                      onChange={(e) => setProdOrigPrice(e.target.value)}
-                      placeholder="For discount badge"
-                      className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-black"
-                    />
+                    <label className="block font-bold uppercase mb-1">Original Price ($)</label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-2.5 text-neutral-500 font-bold text-xs pointer-events-none">$</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={prodOrigPrice}
+                        onChange={(e) => setProdOrigPrice(e.target.value)}
+                        placeholder="For discount badge"
+                        className="w-full bg-neutral-50 border border-neutral-200 rounded-xl pl-7 pr-3 py-2.5 text-xs focus:outline-none focus:border-black"
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="block font-bold uppercase mb-1">
@@ -2603,7 +2664,7 @@ export default function AdminDashboardClient() {
                       className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2"
                     >
                       <option value="percentage">Percentage (%)</option>
-                      <option value="fixed">Flat INR (₹)</option>
+                      <option value="fixed">Flat USD ($)</option>
                     </select>
                   </div>
                   <div>
@@ -2618,7 +2679,7 @@ export default function AdminDashboardClient() {
                   </div>
                 </div>
                 <div>
-                  <label className="block font-bold uppercase mb-1">Minimum Order Amount (₹)</label>
+                  <label className="block font-bold uppercase mb-1">Minimum Order Amount ($)</label>
                   <input
                     type="number"
                     value={newCouponMin}

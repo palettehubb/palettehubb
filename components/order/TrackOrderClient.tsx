@@ -119,7 +119,7 @@ export default function TrackOrderClient() {
                     <span>{doItem.orderNumber}</span>
                     {doItem.total && (
                       <span className="text-[10px] text-neutral-500 font-sans font-medium">
-                        (₹{doItem.total})
+                        (${doItem.total})
                       </span>
                     )}
                   </button>
@@ -162,7 +162,7 @@ export default function TrackOrderClient() {
               <div className="text-right">
                 <span className="text-xs text-neutral-400">Total Order Value</span>
                 <p className="text-lg font-black text-neutral-900">
-                  ₹ {order.total.toLocaleString('en-IN')}
+                  ${order.total.toFixed(2)}
                 </p>
               </div>
             </div>
@@ -224,7 +224,7 @@ export default function TrackOrderClient() {
                       </div>
                     </div>
                     <span className="font-bold text-xs sm:text-sm text-neutral-900">
-                      ₹ {(item.price * item.quantity).toLocaleString('en-IN')}
+                      ${(item.price * item.quantity).toFixed(2)}
                     </span>
                   </div>
                 ))}

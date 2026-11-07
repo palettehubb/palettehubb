@@ -15,7 +15,9 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
-import { IShippingAddress } from '@/types';
+import { IShippingAddress, IOrder } from '@/types';
+import PayPalButton from '@/components/checkout/PayPalButton';
+import { convertInrToUsd } from '@/lib/paypal';
 
 export default function CheckoutClient() {
   const router = useRouter();
@@ -41,7 +43,7 @@ export default function CheckoutClient() {
     country: 'India',
   });
 
-  const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'test_pay'>('test_pay');
+  const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'test_pay' | 'paypal'>('paypal');
   const [agreedToReturnPolicy, setAgreedToReturnPolicy] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -142,25 +144,7 @@ export default function CheckoutClient() {
         throw new Error(orderData.error || 'Order creation failed.');
       }
 
-      // Clear local cart and redirect to order confirmation
-      // Save order to device localStorage for private local tracking
-      try {
-        const existing = JSON.parse(localStorage.getItem('palette_device_orders') || '[]');
-        const updatedDeviceOrders = [
-          {
-            orderNumber: orderData.order.orderNumber,
-            date: new Date().toISOString(),
-            total: orderData.order.total,
-            itemsCount: orderData.order.items?.length || 1,
-          },
-          ...existing.filter((o: any) => o.orderNumber !== orderData.order.orderNumber),
-        ].slice(0, 10);
-        localStorage.setItem('palette_device_orders', JSON.stringify(updatedDeviceOrders));
-      } catch (e) {
-        // storage error
-      }
-      clearCart();
-      router.push(`/order-confirmation/${orderData.order.orderNumber}`);
+      handleOrderSuccess(orderData.order);
     } catch (err: unknown) {
       console.error('Checkout error:', err);
       setErrorMessage(
@@ -168,6 +152,27 @@ export default function CheckoutClient() {
       );
       setProcessing(false);
     }
+  };
+
+  const handleOrderSuccess = (order: IOrder) => {
+    try {
+      const existing = JSON.parse(localStorage.getItem('palette_device_orders') || '[]');
+      const updatedDeviceOrders = [
+        {
+          orderNumber: order.orderNumber,
+          date: new Date().toISOString(),
+          total: order.total,
+          itemsCount: order.items?.length || 1,
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...existing.filter((o: any) => o.orderNumber !== order.orderNumber),
+      ].slice(0, 10);
+      localStorage.setItem('palette_device_orders', JSON.stringify(updatedDeviceOrders));
+    } catch (e) {
+      // storage error
+    }
+    clearCart();
+    router.push(`/order-confirmation/${order.orderNumber}`);
   };
 
   if (items.length === 0) {
@@ -346,6 +351,40 @@ export default function CheckoutClient() {
               </h2>
 
               <div className="space-y-3">
+                {/* PayPal Payment Option */}
+                <label
+                  className={`flex items-start gap-3 p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                    paymentMethod === 'paypal'
+                      ? 'border-[#0070ba] bg-sky-50/50 shadow-sm'
+                      : 'border-neutral-200 hover:border-neutral-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="paypal"
+                    checked={paymentMethod === 'paypal'}
+                    onChange={() => setPaymentMethod('paypal')}
+                    className="mt-1 accent-[#0070ba]"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs sm:text-sm font-bold text-neutral-900 flex items-center gap-2">
+                        <span>PayPal / Cards</span>
+                        <span className="text-[10px] bg-[#0070ba] text-white font-bold px-2 py-0.5 rounded">
+                          GLOBAL & CARDS
+                        </span>
+                      </span>
+                      <span className="text-xs font-black tracking-tight text-[#003087]">
+                        PayPal
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-neutral-500 mt-1">
+                      Pay securely with Debit/Credit card (Visa, MasterCard, Amex) or PayPal account in USD.
+                    </p>
+                  </div>
+                </label>
+
                 {/* Instant Sandbox / Test Pay Option */}
                 <label
                   className={`flex items-start gap-3 p-4 rounded-2xl border-2 transition-all cursor-pointer ${
@@ -436,7 +475,7 @@ export default function CheckoutClient() {
                       </p>
                     </div>
                     <span className="text-xs font-bold text-neutral-900">
-                      ₹ {(item.price * item.quantity).toLocaleString('en-IN')}
+                      ${(item.price * item.quantity).toFixed(2)}
                     </span>
                   </div>
                 ))}
@@ -447,7 +486,7 @@ export default function CheckoutClient() {
                 <div className="flex justify-between">
                   <span>Subtotal</span>
                   <span className="font-semibold text-neutral-900">
-                    ₹ {subtotal.toLocaleString('en-IN')}
+                    ${subtotal.toFixed(2)}
                   </span>
                 </div>
 
@@ -457,7 +496,7 @@ export default function CheckoutClient() {
                       <Tag className="w-3.5 h-3.5" />
                       Coupon Discount ({appliedCoupon?.code})
                     </span>
-                    <span>- ₹ {discount.toLocaleString('en-IN')}</span>
+                    <span>- ${discount.toFixed(2)}</span>
                   </div>
                 )}
 
@@ -467,19 +506,19 @@ export default function CheckoutClient() {
                     {shipping === 0 ? (
                       <span className="text-emerald-700 font-bold">FREE</span>
                     ) : (
-                      `₹ ${shipping}`
+                      `$${shipping.toFixed(2)}`
                     )}
                   </span>
                 </div>
 
                 <div className="flex justify-between">
-                  <span>Applicable GST (5%)</span>
-                  <span>₹ {tax.toLocaleString('en-IN')}</span>
+                  <span>Applicable Tax (5%)</span>
+                  <span>${tax.toFixed(2)}</span>
                 </div>
 
                 <div className="border-t border-neutral-200 pt-3 flex justify-between text-base font-extrabold text-neutral-900">
                   <span>Total Amount</span>
-                  <span>₹ {total.toLocaleString('en-IN')}</span>
+                  <span>${total.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -516,24 +555,47 @@ export default function CheckoutClient() {
                 </label>
               </div>
 
-              {/* Submit CTA */}
-              <button
-                type="submit"
-                disabled={processing}
-                className="w-full bg-[#985842] text-white text-sm font-bold py-4 px-6 rounded-2xl flex items-center justify-center gap-2 hover:bg-[#834633] transition-all shadow-lg active:scale-[0.99] disabled:opacity-60 cursor-pointer"
-              >
-                {processing ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Processing Secure Payment...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Confirm & Pay ₹ {total.toLocaleString('en-IN')}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
+              {/* Payment Action: PayPal Smart Buttons OR Traditional Checkout CTA */}
+              {paymentMethod === 'paypal' ? (
+                <div className="pt-1">
+                  <PayPalButton
+                    customer={address}
+                    items={items}
+                    couponCode={appliedCoupon?.code}
+                    totalINR={total}
+                    disabled={!agreedToReturnPolicy}
+                    onSuccess={(confirmedOrder) => {
+                      handleOrderSuccess(confirmedOrder);
+                    }}
+                    onError={(err) => {
+                      setErrorMessage(err);
+                    }}
+                  />
+                  {!agreedToReturnPolicy && (
+                    <p className="text-[11px] text-amber-700 text-center mt-2">
+                      Please check the Return Policy agreement above to activate PayPal checkout.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={processing}
+                  className="w-full bg-[#985842] text-white text-sm font-bold py-4 px-6 rounded-2xl flex items-center justify-center gap-2 hover:bg-[#834633] transition-all shadow-lg active:scale-[0.99] disabled:opacity-60 cursor-pointer"
+                >
+                  {processing ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Processing Secure Payment...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Confirm & Pay ${total.toFixed(2)}</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              )}
 
               <div className="space-y-2 pt-2 border-t border-neutral-100 text-[11px] text-neutral-500">
                 <div className="flex items-center gap-2 text-neutral-700">

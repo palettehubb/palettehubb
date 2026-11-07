@@ -35,10 +35,12 @@ export interface IOrderDoc extends Document {
   shipping: number;
   tax: number;
   total: number;
-  paymentMethod: 'razorpay' | 'cod' | 'test_pay';
+  paymentMethod: 'razorpay' | 'cod' | 'test_pay' | 'paypal';
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
+  paypalOrderId?: string;
+  paypalCaptureId?: string;
   orderStatus:
     | 'Pending Payment'
     | 'Paid'
@@ -101,7 +103,7 @@ const OrderSchema = new Schema<IOrderDoc>(
     total: { type: Number, required: true },
     paymentMethod: {
       type: String,
-      enum: ['razorpay', 'cod', 'test_pay'],
+      enum: ['razorpay', 'cod', 'test_pay', 'paypal'],
       default: 'test_pay',
     },
     paymentStatus: {
@@ -111,6 +113,8 @@ const OrderSchema = new Schema<IOrderDoc>(
     },
     razorpayOrderId: { type: String },
     razorpayPaymentId: { type: String },
+    paypalOrderId: { type: String },
+    paypalCaptureId: { type: String },
     orderStatus: {
       type: String,
       enum: [

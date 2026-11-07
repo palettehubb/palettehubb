@@ -173,34 +173,38 @@ export default function OrderConfirmationClient({
             <div className="flex justify-between">
               <span>Payment Mode</span>
               <span className="font-bold uppercase text-neutral-900">
-                {order.paymentMethod === 'test_pay' ? 'Verified Online' : 'Razorpay'}
+                {order.paymentMethod === 'paypal'
+                  ? 'PayPal'
+                  : order.paymentMethod === 'test_pay'
+                  ? 'Verified Online'
+                  : 'Razorpay'}
               </span>
             </div>
             <div className="flex justify-between">
               <span>Subtotal</span>
               <span className="font-semibold text-neutral-900">
-                ₹ {order.subtotal.toLocaleString('en-IN')}
+                ${order.subtotal.toFixed(2)}
               </span>
             </div>
             {order.discount > 0 && (
               <div className="flex justify-between text-emerald-700 font-semibold">
                 <span>Discount</span>
-                <span>- ₹ {order.discount.toLocaleString('en-IN')}</span>
+                <span>- ${order.discount.toFixed(2)}</span>
               </div>
             )}
             <div className="flex justify-between">
               <span>Shipping Fee</span>
               <span className="font-semibold text-neutral-900">
-                {order.shipping === 0 ? 'FREE' : `₹ ${order.shipping}`}
+                {order.shipping === 0 ? 'FREE' : `$${order.shipping.toFixed(2)}`}
               </span>
             </div>
             <div className="flex justify-between">
-              <span>GST (5%)</span>
-              <span>₹ {order.tax.toLocaleString('en-IN')}</span>
+              <span>Tax (5%)</span>
+              <span>${order.tax.toFixed(2)}</span>
             </div>
             <div className="border-t border-neutral-200 pt-2 flex justify-between text-sm font-black text-black">
               <span>Total Paid</span>
-              <span>₹ {order.total.toLocaleString('en-IN')}</span>
+              <span>${order.total.toFixed(2)}</span>
             </div>
           </div>
 
@@ -224,7 +228,7 @@ export default function OrderConfirmationClient({
                   </p>
                 </div>
                 <span className="font-black text-sm text-neutral-900">
-                  ₹ {(item.price * item.quantity).toLocaleString('en-IN')}
+                  ${(item.price * item.quantity).toFixed(2)}
                 </span>
               </div>
             ))}

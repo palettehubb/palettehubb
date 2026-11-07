@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Product from '@/models/Product';
 import { uploadImageToCloudinary, deleteImageFromCloudinary } from '@/lib/cloudinary';
+import { notifyProductUpdated, notifyProductDeleted } from '@/lib/realtime';
+import memoryStore from '@/lib/memoryStore';
 
 export async function GET(
   req: NextRequest,
@@ -63,6 +65,16 @@ export async function PUT(
       body.images = processed;
     }
 
+    if (body.price !== undefined) {
+      body.price = Math.max(0, Number(body.price) || 0);
+    }
+    if (body.originalPrice !== undefined) {
+      body.originalPrice = Math.max(0, Number(body.originalPrice) || 0);
+    }
+    if (body.stock !== undefined) {
+      body.stock = Math.max(0, Number(body.stock) || 0);
+    }
+
     if (body.originalPrice && body.price) {
       const orig = Number(body.originalPrice);
       const pr = Number(body.price);
@@ -80,6 +92,11 @@ export async function PUT(
     if (!updated) {
       return NextResponse.json({ success: false, error: 'Product not found' }, { status: 404 });
     }
+
+    try {
+      notifyProductUpdated(updated);
+      memoryStore.products = memoryStore.products.map(p => (p.slug === slug || p._id === slug ? updated : p));
+    } catch {}
 
     return NextResponse.json({
       success: true,
@@ -115,6 +132,11 @@ export async function DELETE(
     if (!product) {
       return NextResponse.json({ success: false, error: 'Product not found' }, { status: 404 });
     }
+
+    try {
+      notifyProductDeleted({ slug, id: product._id?.toString() });
+      memoryStore.products = memoryStore.products.filter(p => p.slug !== slug && p._id !== slug);
+    } catch {}
 
     // Remove images from Cloudinary to keep free tier clean
     if (Array.isArray(product.images)) {

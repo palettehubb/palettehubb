@@ -39,7 +39,45 @@ export default function FeaturedProducts({ initialProducts = [] }: FeaturedProdu
     }, 1500);
   };
 
-  const products: IProduct[] = initialProducts;
+  const [products, setProducts] = useState<IProduct[]>(initialProducts);
+
+  React.useEffect(() => {
+    let eventSource: EventSource | null = null;
+    try {
+      eventSource = new EventSource('/api/events/products');
+      eventSource.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          if (payload.type === 'PRODUCT_CREATED' && payload.product?.isFeatured) {
+            setProducts((prev) => [
+              payload.product,
+              ...prev.filter(
+                (p) => p.slug !== payload.product.slug && p._id !== payload.product._id
+              ),
+            ]);
+          } else if (payload.type === 'PRODUCT_UPDATED' && payload.product) {
+            setProducts((prev) =>
+              prev.map((p) =>
+                p.slug === payload.product.slug || p._id === payload.product._id
+                  ? payload.product
+                  : p
+              )
+            );
+          } else if (payload.type === 'PRODUCT_DELETED' && payload.data) {
+            setProducts((prev) =>
+              prev.filter(
+                (p) => p.slug !== payload.data.slug && p._id !== payload.data.id
+              )
+            );
+          }
+        } catch {}
+      };
+    } catch {}
+
+    return () => {
+      if (eventSource) eventSource.close();
+    };
+  }, []);
 
   if (products.length === 0) {
     return (
@@ -151,11 +189,11 @@ export default function FeaturedProducts({ initialProducts = [] }: FeaturedProdu
 
                   <div className="mt-2 flex items-baseline gap-1.5 flex-wrap">
                     <span className="font-black text-sm sm:text-base text-neutral-900">
-                      ₹{product.price.toLocaleString('en-IN')}
+                      ${product.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                     {hasDiscount && (
                       <span className="text-[11px] sm:text-xs text-neutral-400 line-through">
-                        ₹{product.originalPrice!.toLocaleString('en-IN')}
+                        ${product.originalPrice!.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     )}
                   </div>

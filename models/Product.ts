@@ -53,4 +53,8 @@ const ProductSchema = new Schema<IProductDoc>(
   { timestamps: true }
 );
 
+ProductSchema.index({ isAvailable: 1, isFeatured: 1 });
+ProductSchema.index({ isAvailable: 1, category: 1 });
+ProductSchema.index({ isAvailable: 1, createdAt: -1 });
+
 export default mongoose.models.Product || mongoose.model<IProductDoc>('Product', ProductSchema);

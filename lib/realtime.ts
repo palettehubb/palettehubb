@@ -1,22 +1,22 @@
 import { EventEmitter } from 'events';
 
-class OrderEventEmitter extends EventEmitter {
+class AppEventEmitter extends EventEmitter {
   constructor() {
     super();
-    this.setMaxListeners(100);
+    this.setMaxListeners(200);
   }
 }
 
 declare global {
   // eslint-disable-next-line no-var
-  var __orderEventEmitter: OrderEventEmitter | undefined;
+  var __appEventEmitter: AppEventEmitter | undefined;
 }
 
-export const orderEvents: OrderEventEmitter =
-  global.__orderEventEmitter || new OrderEventEmitter();
+export const orderEvents: AppEventEmitter =
+  global.__appEventEmitter || new AppEventEmitter();
 
-if (!global.__orderEventEmitter) {
-  global.__orderEventEmitter = orderEvents;
+if (!global.__appEventEmitter) {
+  global.__appEventEmitter = orderEvents;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -34,5 +34,33 @@ export function notifyOrderUpdated(order: any) {
     orderEvents.emit('order-updated', order);
   } catch (err) {
     console.error('Error emitting order update event:', err);
+  }
+}
+
+// Product Events for Instant Real-Time User Side Sync Without Refresh
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function notifyProductCreated(product: any) {
+  try {
+    orderEvents.emit('product-created', product);
+  } catch (err) {
+    console.error('Error emitting product created event:', err);
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function notifyProductUpdated(product: any) {
+  try {
+    orderEvents.emit('product-updated', product);
+  } catch (err) {
+    console.error('Error emitting product updated event:', err);
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function notifyProductDeleted(data: { slug: string; id?: string }) {
+  try {
+    orderEvents.emit('product-deleted', data);
+  } catch (err) {
+    console.error('Error emitting product deleted event:', err);
   }
 }

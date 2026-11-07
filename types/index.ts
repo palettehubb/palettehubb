@@ -103,10 +103,12 @@ export interface IOrder {
   shipping: number;
   tax: number;
   total: number;
-  paymentMethod: 'razorpay' | 'cod' | 'test_pay';
+  paymentMethod: 'razorpay' | 'cod' | 'test_pay' | 'paypal';
   paymentStatus: PaymentStatus;
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
+  paypalOrderId?: string;
+  paypalCaptureId?: string;
   orderStatus: OrderStatus;
   supplierOrderRef?: string;
   trackingNumber?: string;

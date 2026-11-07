@@ -37,7 +37,7 @@ export default function ShopClient({
   const { addItem } = useCart();
   const { toggleWishlist, isInWishlist, wishlist } = useWishlist();
 
-  const [products] = useState<IProduct[]>(initialProducts);
+  const [products, setProducts] = useState<IProduct[]>(initialProducts);
   const [categoryList, setCategoryList] = useState<ICategory[]>(categoriesData);
   const [selectedCategory, setSelectedCategory] = useState<string>(
     searchParams.get('category') || 'all'
@@ -51,13 +51,56 @@ export default function ShopClient({
   const [sortBy, setSortBy] = useState<string>(
     searchParams.get('sort') || 'featured'
   );
-  const [priceRange, setPriceRange] = useState<number>(5000);
+  const [priceRange, setPriceRange] = useState<number>(300);
   const [showInStockOnly, setShowInStockOnly] = useState<boolean>(false);
   const [showWishlistOnly, setShowWishlistOnly] = useState<boolean>(
     searchParams.get('wishlist') === 'true'
   );
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [addedIds, setAddedIds] = useState<Record<string, boolean>>({});
+
+  // Real-time synchronization without refresh: updates catalog instantly when admin adds, edits, or deletes
+  useEffect(() => {
+    let eventSource: EventSource | null = null;
+    try {
+      eventSource = new EventSource('/api/events/products');
+      eventSource.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          if (payload.type === 'PRODUCT_CREATED' && payload.product) {
+            setProducts((prev) => [
+              payload.product,
+              ...prev.filter(
+                (p) => p.slug !== payload.product.slug && p._id !== payload.product._id
+              ),
+            ]);
+          } else if (payload.type === 'PRODUCT_UPDATED' && payload.product) {
+            setProducts((prev) =>
+              prev.map((p) =>
+                p.slug === payload.product.slug || p._id === payload.product._id
+                  ? payload.product
+                  : p
+              )
+            );
+          } else if (payload.type === 'PRODUCT_DELETED' && payload.data) {
+            setProducts((prev) =>
+              prev.filter(
+                (p) => p.slug !== payload.data.slug && p._id !== payload.data.id
+              )
+            );
+          }
+        } catch {
+          // ignore parse errors
+        }
+      };
+    } catch {
+      // event source error
+    }
+
+    return () => {
+      if (eventSource) eventSource.close();
+    };
+  }, []);
 
   // Sync state with URL params
   useEffect(() => {
@@ -450,20 +493,20 @@ export default function ShopClient({
             <div>
               <div className="flex justify-between text-xs font-bold text-neutral-800 uppercase tracking-wider mb-2">
                 <span>Max Price</span>
-                <span>₹ {priceRange.toLocaleString('en-IN')}</span>
+                <span>$ {priceRange}</span>
               </div>
               <input
                 type="range"
-                min="499"
-                max="5000"
-                step="100"
+                min="10"
+                max="500"
+                step="5"
                 value={priceRange}
                 onChange={(e) => setPriceRange(Number(e.target.value))}
                 className="w-full accent-black cursor-pointer"
               />
               <div className="flex justify-between text-[11px] text-neutral-400 mt-1">
-                <span>₹499</span>
-                <span>₹5,000</span>
+                <span>$10</span>
+                <span>$500</span>
               </div>
             </div>
 
@@ -626,11 +669,11 @@ export default function ShopClient({
                         </Link>
                         <div className="flex items-center gap-2 mt-1.5">
                           <span className="font-extrabold text-sm sm:text-base text-black">
-                            ₹ {product.price.toLocaleString('en-IN')}
+                            ${product.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                           {product.originalPrice && (
                             <span className="text-xs text-neutral-400 line-through">
-                              ₹ {product.originalPrice.toLocaleString('en-IN')}
+                              ${product.originalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                           )}
                         </div>
@@ -773,13 +816,13 @@ export default function ShopClient({
 
                 <div>
                   <label className="block text-xs font-bold mb-2">
-                    Max Price: ₹{priceRange}
+                    Max Price: ${priceRange}
                   </label>
                   <input
                     type="range"
-                    min="499"
-                    max="5000"
-                    step="100"
+                    min="10"
+                    max="500"
+                    step="5"
                     value={priceRange}
                     onChange={(e) => setPriceRange(Number(e.target.value))}
                     className="w-full accent-black cursor-pointer"

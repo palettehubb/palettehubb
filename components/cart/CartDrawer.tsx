@@ -161,7 +161,7 @@ export default function CartDrawer() {
 
                       {/* Price */}
                       <span className="font-bold text-sm text-neutral-900">
-                        ₹ {(item.price * item.quantity).toLocaleString('en-IN')}
+                        ${(item.price * item.quantity).toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -180,7 +180,7 @@ export default function CartDrawer() {
                   <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-xl text-xs text-emerald-800">
                     <span className="flex items-center gap-1.5 font-semibold">
                       <Tag className="w-3.5 h-3.5" />
-                      {appliedCoupon.code} (-₹{discount.toLocaleString('en-IN')})
+                      {appliedCoupon.code} (-${discount.toFixed(2)})
                     </span>
                     <button
                       onClick={removeCoupon}
@@ -224,14 +224,14 @@ export default function CartDrawer() {
                 <div className="flex justify-between">
                   <span>Subtotal</span>
                   <span className="font-semibold text-neutral-900">
-                    ₹ {subtotal.toLocaleString('en-IN')}
+                    ${subtotal.toFixed(2)}
                   </span>
                 </div>
 
                 {discount > 0 && (
                   <div className="flex justify-between text-emerald-700 font-medium">
                     <span>Discount</span>
-                    <span>- ₹ {discount.toLocaleString('en-IN')}</span>
+                    <span>- ${discount.toFixed(2)}</span>
                   </div>
                 )}
 
@@ -241,19 +241,19 @@ export default function CartDrawer() {
                     {shipping === 0 ? (
                       <span className="text-emerald-600 font-bold">FREE</span>
                     ) : (
-                      `₹ ${shipping}`
+                      `$${shipping.toFixed(2)}`
                     )}
                   </span>
                 </div>
 
                 <div className="flex justify-between">
-                  <span>Estimated GST (5%)</span>
-                  <span>₹ {tax.toLocaleString('en-IN')}</span>
+                  <span>Estimated Tax (5%)</span>
+                  <span>${tax.toFixed(2)}</span>
                 </div>
 
                 <div className="pt-2 border-t border-neutral-200 flex justify-between text-sm font-extrabold text-neutral-900">
                   <span>Final Total</span>
-                  <span>₹ {total.toLocaleString('en-IN')}</span>
+                  <span>${total.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -268,7 +268,7 @@ export default function CartDrawer() {
               </Link>
 
               <p className="text-center text-[11px] text-neutral-400">
-                Free standard delivery on orders above ₹1,499. Sourced from verified suppliers.
+                Free standard delivery on orders above $50. Sourced from verified suppliers.
               </p>
             </div>
           )}

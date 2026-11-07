@@ -5,7 +5,8 @@ import Product from '@/models/Product';
 import Coupon from '@/models/Coupon';
 import Supplier from '@/models/Supplier';
 import { IOrderItem } from '@/types';
-import { notifyNewOrder } from '@/lib/realtime';
+import { notifyNewOrder, notifyProductUpdated } from '@/lib/realtime';
+import memoryStore from '@/lib/memoryStore';
 
 export async function GET(req: NextRequest) {
   try {
@@ -95,6 +96,16 @@ export async function POST(req: NextRequest) {
         if (supp) supplierName = supp.name;
       }
 
+      if (dbProduct && (dbProduct.stock ?? 0) < qty) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Insufficient stock for "${dbProduct.name}". Only ${dbProduct.stock} units available.`,
+          },
+          { status: 400 }
+        );
+      }
+
       verifiedItems.push({
         productId: dbProduct?._id?.toString() || item.productId,
         name: dbProduct?.name || item.name,
@@ -122,6 +133,10 @@ export async function POST(req: NextRequest) {
             },
           }
         );
+        await Product.updateOne(
+          { _id: dbProduct._id, stock: { $lt: 0 } },
+          { $set: { stock: 0 } }
+        );
       }
     }
 
@@ -147,8 +162,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const shipping = serverSubtotal >= 1499 ? 0 : 99; // Free shipping over ₹1499
-    const tax = Math.round((serverSubtotal - discount) * 0.05 * 100) / 100; // 5% GST
+    const shipping = serverSubtotal >= 50 ? 0 : 5.99; // Free shipping over $50
+    const tax = Math.round((serverSubtotal - discount) * 0.05 * 100) / 100; // 5% tax
     const finalTotal = Math.round((serverSubtotal - discount + shipping + tax) * 100) / 100;
 
     const orderNumber = `PH-${Math.floor(10000 + Math.random() * 90000)}`;
@@ -186,6 +201,19 @@ export async function POST(req: NextRequest) {
 
     // Broadcast in real-time to Admin and Supplier dashboards
     notifyNewOrder(plainOrder);
+
+    // Sync memoryStore and notify product stock updates in real-time
+    try {
+      memoryStore.orders = [plainOrder, ...memoryStore.orders.filter((o) => o._id !== plainOrder._id)];
+      for (const it of verifiedItems) {
+        const prod = memoryStore.products.find((p) => p.slug === it.slug || p._id === it.productId);
+        if (prod) {
+          prod.stock = Math.max(0, (prod.stock ?? 0) - it.quantity);
+          prod.salesCount = (prod.salesCount || 0) + it.quantity;
+          notifyProductUpdated(prod);
+        }
+      }
+    } catch {}
 
     return NextResponse.json(
       {

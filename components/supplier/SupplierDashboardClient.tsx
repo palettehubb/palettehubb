@@ -144,7 +144,7 @@ export default function SupplierDashboardClient() {
               setOrders((prev) => [newOrd, ...prev.filter((o) => o._id !== newOrd._id)]);
               showDeviceNotification(
                 `🔔 New Order Received #${newOrd.orderNumber}`,
-                `Customer: ${newOrd.customer.fullName} — Amount: ₹${newOrd.total.toLocaleString('en-IN')}`,
+                `Customer: ${newOrd.customer.fullName} — Amount: $${newOrd.total.toFixed(2)}`,
                 '/supplier-dashboard'
               );
             }
@@ -630,12 +630,12 @@ export default function SupplierDashboardClient() {
                                 {it.size && <span>Size: <b>{it.size}</b></span>}
                                 {it.color && <span>Color: <b>{it.color}</b></span>}
                                 <span>Qty: <b>{it.quantity}</b></span>
-                                <span>Unit: ₹{it.price.toLocaleString('en-IN')}</span>
+                                <span>Unit: ${it.price.toFixed(2)}</span>
                               </div>
                             </div>
                             <div className="text-right shrink-0">
                               <div className="font-bold text-xs sm:text-sm text-neutral-900">
-                                ₹{(it.price * it.quantity).toLocaleString('en-IN')}
+                                ${(it.price * it.quantity).toFixed(2)}
                               </div>
                               <span className="text-[10px] font-bold px-2 py-0.5 bg-neutral-200 rounded-md text-neutral-700">
                                 {it.itemStatus || 'Pending'}

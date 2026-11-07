@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: `Minimum order amount for coupon ${coupon.code} is ₹${coupon.minOrderAmount}`,
+          error: `Minimum order amount for coupon ${coupon.code} is $${coupon.minOrderAmount}`,
         },
         { status: 400 }
       );

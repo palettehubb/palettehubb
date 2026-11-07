@@ -43,7 +43,6 @@ export async function generateMetadata({ params }: PageProps) {
     },
   };
 }
-
 export const instant = false;
 
 export default async function ProductDetailPage({ params }: PageProps) {
@@ -53,7 +52,6 @@ export default async function ProductDetailPage({ params }: PageProps) {
   let relatedProducts: IProduct[] = [];
 
   try {
-    await connection();
     const db = await connectToDatabase();
     if (db) {
       const p = await Product.findOne({ slug }).lean();

@@ -187,14 +187,14 @@ export default function ProductDetailClient({
                 {product.name}
               </h1>
 
-              {/* Pricing in INR */}
+              {/* Pricing in USD */}
               <div className="flex items-baseline gap-2.5 sm:gap-3 mb-4 flex-wrap">
                 <span className="text-2xl sm:text-3xl font-black text-black">
-                  ₹ {product.price.toLocaleString('en-IN')}
+                  ${product.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
                 {product.originalPrice && product.originalPrice > product.price && (
                   <span className="text-sm sm:text-base text-neutral-400 line-through">
-                    ₹ {product.originalPrice.toLocaleString('en-IN')}
+                    ${product.originalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 )}
                 <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
@@ -399,7 +399,7 @@ export default function ProductDetailClient({
                     {rel.name}
                   </h3>
                   <div className="text-xs font-black text-black mt-1">
-                    ₹ {rel.price.toLocaleString('en-IN')}
+                    ${rel.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </Link>
               ))}

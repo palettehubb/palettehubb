@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Product from '@/models/Product';
 import { uploadImageToCloudinary } from '@/lib/cloudinary';
+import { notifyProductCreated } from '@/lib/realtime';
+import memoryStore from '@/lib/memoryStore';
 
 export async function GET(req: NextRequest) {
   try {
@@ -98,8 +100,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const price = Number(body.price);
-    const originalPrice = body.originalPrice ? Number(body.originalPrice) : undefined;
+    const price = Math.max(0, Number(body.price) || 0);
+    const originalPrice = body.originalPrice ? Math.max(0, Number(body.originalPrice) || 0) : undefined;
     let discountPercent = 0;
     if (originalPrice && originalPrice > price) {
       discountPercent = Math.round(((originalPrice - price) / originalPrice) * 100);
@@ -159,6 +161,11 @@ export async function POST(req: NextRequest) {
       supplierId: body.supplierId || '',
       tags: Array.isArray(body.tags) ? body.tags : [],
     });
+
+    try {
+      notifyProductCreated(newProduct);
+      memoryStore.products = [newProduct, ...memoryStore.products.filter(p => p.slug !== newProduct.slug)];
+    } catch {}
 
     return NextResponse.json({ success: true, product: newProduct }, { status: 201 });
   } catch (error: unknown) {
