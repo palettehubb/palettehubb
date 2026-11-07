@@ -13,10 +13,13 @@ import {
   Tag,
   AlertCircle,
   CheckCircle2,
+  QrCode,
+  Smartphone,
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { IShippingAddress, IOrder } from '@/types';
 import PayPalButton from '@/components/checkout/PayPalButton';
+import SecureQRCodePayment from '@/components/checkout/SecureQRCodePayment';
 import { convertInrToUsd } from '@/lib/paypal';
 
 export default function CheckoutClient() {
@@ -44,6 +47,7 @@ export default function CheckoutClient() {
   });
 
   const paymentMethod = 'paypal';
+  const [paymentMode, setPaymentMode] = useState<'paypal_button' | 'scan_qr'>('paypal_button');
   const [agreedToReturnPolicy, setAgreedToReturnPolicy] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -351,17 +355,29 @@ export default function CheckoutClient() {
               </h2>
 
               <div className="space-y-3">
-                {/* PayPal Payment Gateway */}
-                <div className="p-4 rounded-2xl border-2 border-[#0070ba] bg-sky-50/50 shadow-sm flex items-start gap-3">
-                  <div className="mt-0.5 w-5 h-5 rounded-full bg-[#0070ba] text-white flex items-center justify-center text-xs font-bold shrink-0">
-                    ✓
-                  </div>
+                {/* Mode 1: PayPal Smart Buttons */}
+                <label
+                  onClick={() => setPaymentMode('paypal_button')}
+                  className={`flex items-start gap-3.5 p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                    paymentMode === 'paypal_button'
+                      ? 'border-[#0070ba] bg-sky-50/60 shadow-sm'
+                      : 'border-neutral-200 hover:border-neutral-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMode"
+                    value="paypal_button"
+                    checked={paymentMode === 'paypal_button'}
+                    onChange={() => setPaymentMode('paypal_button')}
+                    className="mt-1 accent-[#0070ba]"
+                  />
                   <div className="flex-1">
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <span className="text-xs sm:text-sm font-bold text-neutral-900 flex items-center gap-2">
                         <span>PayPal Express & Cards</span>
                         <span className="text-[10px] bg-[#0070ba] text-white font-bold px-2 py-0.5 rounded">
-                          GLOBAL & CARDS
+                          DIRECT BUTTONS
                         </span>
                       </span>
                       <span className="text-xs font-black tracking-tight text-[#003087]">
@@ -369,16 +385,52 @@ export default function CheckoutClient() {
                       </span>
                     </div>
                     <p className="text-[11px] text-neutral-600 mt-1">
-                      Pay securely with your PayPal account or Debit / Credit cards (Visa, MasterCard, Amex, Discover).
+                      Pay directly on this screen using PayPal account, Visa, MasterCard, Amex, or Discover.
                     </p>
-                    <div className="mt-2.5 flex items-center gap-2 text-[10px] text-neutral-500 font-semibold">
+                    <div className="mt-2 flex items-center gap-2 text-[10px] text-neutral-500 font-semibold">
                       <span className="bg-white px-2 py-0.5 rounded border border-neutral-200">Visa</span>
                       <span className="bg-white px-2 py-0.5 rounded border border-neutral-200">MasterCard</span>
                       <span className="bg-white px-2 py-0.5 rounded border border-neutral-200">Amex</span>
-                      <span className="bg-white px-2 py-0.5 rounded border border-neutral-200">PayPal Credit</span>
                     </div>
                   </div>
-                </div>
+                </label>
+
+                {/* Mode 2: Secure Scan to Pay QR Code */}
+                <label
+                  onClick={() => setPaymentMode('scan_qr')}
+                  className={`flex items-start gap-3.5 p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                    paymentMode === 'scan_qr'
+                      ? 'border-[#0070ba] bg-sky-50/60 shadow-sm'
+                      : 'border-neutral-200 hover:border-neutral-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMode"
+                    value="scan_qr"
+                    checked={paymentMode === 'scan_qr'}
+                    onChange={() => setPaymentMode('scan_qr')}
+                    className="mt-1 accent-[#0070ba]"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <span className="text-xs sm:text-sm font-bold text-neutral-900 flex items-center gap-2">
+                        <span>Scan to Pay (Secure QR Code)</span>
+                        <span className="text-[10px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded">
+                          CAMERA SCAN
+                        </span>
+                      </span>
+                      <QrCode className="w-4 h-4 text-[#0070ba]" />
+                    </div>
+                    <p className="text-[11px] text-neutral-600 mt-1">
+                      Generates a dynamic 256-bit encrypted QR code. Scan with your smartphone camera to pay securely on mobile.
+                    </p>
+                    <div className="mt-2 flex items-center gap-2 text-[10px] text-emerald-700 font-semibold">
+                      <Smartphone className="w-3.5 h-3.5" />
+                      <span>Supports iPhone, Android, & Mobile Banking Apps</span>
+                    </div>
+                  </div>
+                </label>
               </div>
             </div>
 
@@ -490,25 +542,50 @@ export default function CheckoutClient() {
                 </label>
               </div>
 
-              {/* Payment Action: PayPal Official Smart Buttons */}
+              {/* Payment Action: PayPal Smart Buttons OR Secure Scan to Pay QR Code */}
               <div className="pt-1">
-                <PayPalButton
-                  customer={address}
-                  items={items}
-                  couponCode={appliedCoupon?.code}
-                  totalINR={total}
-                  disabled={!agreedToReturnPolicy}
-                  onSuccess={(confirmedOrder) => {
-                    handleOrderSuccess(confirmedOrder);
-                  }}
-                  onError={(err) => {
-                    setErrorMessage(err);
-                  }}
-                />
-                {!agreedToReturnPolicy && (
-                  <p className="text-[11px] text-amber-700 text-center mt-2">
-                    Please check the Return Policy agreement above to activate PayPal checkout.
-                  </p>
+                {paymentMode === 'paypal_button' ? (
+                  <>
+                    <PayPalButton
+                      customer={address}
+                      items={items}
+                      couponCode={appliedCoupon?.code}
+                      totalINR={total}
+                      disabled={!agreedToReturnPolicy}
+                      onSuccess={(confirmedOrder) => {
+                        handleOrderSuccess(confirmedOrder);
+                      }}
+                      onError={(err) => {
+                        setErrorMessage(err);
+                      }}
+                    />
+                    {!agreedToReturnPolicy && (
+                      <p className="text-[11px] text-amber-700 text-center mt-2">
+                        Please check the Return Policy agreement above to activate PayPal checkout.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <SecureQRCodePayment
+                      customer={address}
+                      items={items}
+                      couponCode={appliedCoupon?.code}
+                      totalUSD={total}
+                      disabled={!agreedToReturnPolicy}
+                      onSuccess={(confirmedOrder) => {
+                        handleOrderSuccess(confirmedOrder);
+                      }}
+                      onError={(err) => {
+                        setErrorMessage(err);
+                      }}
+                    />
+                    {!agreedToReturnPolicy && (
+                      <p className="text-[11px] text-amber-700 text-center mt-2">
+                        Please check the Return Policy agreement above to activate QR code payment.
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
 

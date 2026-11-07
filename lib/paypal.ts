@@ -144,6 +144,30 @@ export async function capturePayPalOrder(orderId: string) {
 }
 
 /**
+ * Retrieves details of a PayPal order to check its current status (e.g. CREATED, APPROVED, COMPLETED).
+ */
+export async function getPayPalOrderDetails(orderId: string) {
+  const token = await getPayPalAccessToken();
+  const baseUrl = getPayPalBaseUrl();
+
+  const response = await fetch(`${baseUrl}/v2/checkout/orders/${orderId}`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    console.error('Failed to get PayPal order details:', data);
+    throw new Error(data.message || 'Failed to fetch PayPal order status');
+  }
+
+  return data;
+}
+
+/**
  * Helper to convert INR (₹) amount to USD ($) at a reliable exchange rate.
  * Standard fallback rate is ~86.5 INR = 1 USD.
  */

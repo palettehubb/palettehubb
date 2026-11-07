@@ -64,9 +64,14 @@ export async function POST(req: NextRequest) {
       referenceId: `ph_cart_${Date.now()}`,
     });
 
+    const approveLink =
+      paypalOrder.links?.find((l: { rel: string; href: string }) => l.rel === 'approve' || l.rel === 'payer-action')?.href ||
+      `https://www.sandbox.paypal.com/checkoutnow?token=${paypalOrder.id}`;
+
     return NextResponse.json({
       success: true,
       orderId: paypalOrder.id,
+      approvalUrl: approveLink,
       amountUSD: totalUSD,
       amountINR: totalINR,
       status: paypalOrder.status,
