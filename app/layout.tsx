@@ -50,6 +50,8 @@ export const metadata: Metadata = {
   },
 };
 
+export const instant = false;
+
 export default function RootLayout({
   children,
 }: Readonly<{

@@ -48,6 +48,8 @@ async function getHomePageData(): Promise<{
   return { featuredProducts, categories };
 }
 
+export const instant = false;
+
 export default async function HomePage() {
   const { featuredProducts, categories } = await getHomePageData();
 

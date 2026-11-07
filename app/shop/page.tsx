@@ -52,6 +52,8 @@ async function getShopData(): Promise<{
   return { products, categories, categoriesData };
 }
 
+export const instant = false;
+
 export default async function ShopPage() {
   const { products, categories, categoriesData } = await getShopData();
 
