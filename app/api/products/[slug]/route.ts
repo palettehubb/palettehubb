@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import connectToDatabase from '@/lib/db';
 import Product from '@/models/Product';
 import { uploadImageToCloudinary, deleteImageFromCloudinary } from '@/lib/cloudinary';
 import { notifyProductUpdated, notifyProductDeleted } from '@/lib/realtime';
 import memoryStore from '@/lib/memoryStore';
+
+function getProductQuery(slug: string) {
+  if (mongoose.isValidObjectId(slug)) {
+    return { $or: [{ _id: slug }, { slug }] };
+  }
+  return { slug };
+}
 
 export async function GET(
   req: NextRequest,
@@ -14,9 +22,7 @@ export async function GET(
     const db = await connectToDatabase();
 
     if (db) {
-      const product = await Product.findOne({
-        $or: [{ slug }, { _id: slug }],
-      }).lean();
+      const product = await Product.findOne(getProductQuery(slug)).lean();
       if (product) {
         return NextResponse.json({ success: true, product });
       }
@@ -84,7 +90,7 @@ export async function PUT(
     }
 
     const updated = await Product.findOneAndUpdate(
-      { $or: [{ slug }, { _id: slug }] },
+      getProductQuery(slug),
       { $set: body },
       { new: true }
     ).lean();
@@ -95,7 +101,7 @@ export async function PUT(
 
     try {
       notifyProductUpdated(updated);
-      memoryStore.products = memoryStore.products.map(p => (p.slug === slug || p._id === slug ? updated : p));
+      memoryStore.products = memoryStore.products.map(p => (p.slug === slug || p._id?.toString() === slug ? updated : p));
     } catch {}
 
     return NextResponse.json({
@@ -125,9 +131,7 @@ export async function DELETE(
       );
     }
 
-    const product = await Product.findOneAndDelete({
-      $or: [{ slug }, { _id: slug }],
-    }).lean();
+    const product = await Product.findOneAndDelete(getProductQuery(slug)).lean();
 
     if (!product) {
       return NextResponse.json({ success: false, error: 'Product not found' }, { status: 404 });
@@ -135,7 +139,7 @@ export async function DELETE(
 
     try {
       notifyProductDeleted({ slug, id: product._id?.toString() });
-      memoryStore.products = memoryStore.products.filter(p => p.slug !== slug && p._id !== slug);
+      memoryStore.products = memoryStore.products.filter(p => p.slug !== slug && p._id?.toString() !== slug && p._id?.toString() !== product._id?.toString());
     } catch {}
 
     // Remove images from Cloudinary to keep free tier clean

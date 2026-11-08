@@ -38,7 +38,7 @@ export async function connectToDatabase(): Promise<typeof mongoose | null> {
     const opts: mongoose.ConnectOptions = {
       bufferCommands: false,
       maxPoolSize: 10, // Optimal pool size for Atlas Free Tier
-      minPoolSize: 2,
+      minPoolSize: 1,
       maxIdleTimeMS: 30000,
       connectTimeoutMS: 5000,
       serverSelectionTimeoutMS: 5000,

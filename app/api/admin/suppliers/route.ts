@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import connectToDatabase from '@/lib/db';
 import Supplier from '@/models/Supplier';
 import { hashPassword } from '@/lib/auth';
@@ -169,8 +170,14 @@ export async function DELETE(req: NextRequest) {
     }
 
     const db = await connectToDatabase();
-    if (db) {
+    if (!db) {
+      return NextResponse.json({ success: false, error: 'Database service unreachable' }, { status: 503 });
+    }
+
+    if (mongoose.isValidObjectId(id)) {
       await Supplier.findOneAndDelete({ _id: id });
+    } else {
+      return NextResponse.json({ success: false, error: 'Invalid supplier ID' }, { status: 400 });
     }
 
     return NextResponse.json({ success: true, message: 'Supplier deleted successfully' });

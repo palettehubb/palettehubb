@@ -142,12 +142,12 @@ export default function AdminDashboardClient() {
     if (!silent) setLoading(true);
     try {
       const [statsRes, ordersRes, prodsRes, suppRes, catRes, coupRes] = await Promise.all([
-        fetch('/api/admin/stats'),
-        fetch('/api/orders'),
-        fetch('/api/products'),
-        fetch('/api/admin/suppliers'),
-        fetch('/api/categories'),
-        fetch('/api/coupons'),
+        fetch('/api/admin/stats', { cache: 'no-store' }),
+        fetch('/api/orders', { cache: 'no-store' }),
+        fetch('/api/products', { cache: 'no-store' }),
+        fetch('/api/admin/suppliers', { cache: 'no-store' }),
+        fetch('/api/categories', { cache: 'no-store' }),
+        fetch('/api/coupons', { cache: 'no-store' }),
       ]);
 
       const [statsData, ordersData, prodsData, suppData, catData, coupData] = await Promise.all([
@@ -564,19 +564,26 @@ export default function AdminDashboardClient() {
     }
   };
 
-  // Delete Product (Instant Optimistic Update)
+  // Delete Product (Instant Optimistic Update with Safe Rollback)
   const handleDeleteProduct = async (slug: string, name: string) => {
     if (!confirm(`Are you sure you want to delete product "${name}"?`)) return;
+    const backup = [...products];
     setProducts((prev) => prev.filter((p) => p.slug !== slug && p._id !== slug));
     try {
-      const res = await fetch(`/api/products/${slug}`, { method: 'DELETE' });
+      const res = await fetch(`/api/products/${encodeURIComponent(slug)}`, { method: 'DELETE' });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         showToast(`Product "${name}" removed from inventory.`);
+        fetchAdminData(true);
+      } else {
+        setProducts(backup);
+        alert(data.error || 'Failed to delete product from database.');
         fetchAdminData(true);
       }
     } catch (err) {
       console.error(err);
+      setProducts(backup);
+      alert('Network error while deleting product.');
       fetchAdminData(true);
     }
   };
@@ -724,19 +731,26 @@ export default function AdminDashboardClient() {
     }
   };
 
-  // Delete Category (Instant Optimistic Update)
+  // Delete Category (Instant Optimistic Update with Safe Rollback)
   const handleDeleteCategory = async (slug: string, name: string) => {
     if (!confirm(`Delete category "${name}"?`)) return;
+    const backup = [...categories];
     setCategories((prev) => prev.filter((c) => c.slug !== slug));
     try {
-      const res = await fetch(`/api/categories?slug=${slug}`, { method: 'DELETE' });
+      const res = await fetch(`/api/categories?slug=${encodeURIComponent(slug)}`, { method: 'DELETE' });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         showToast(`Category "${name}" deleted.`);
+        fetchAdminData(true);
+      } else {
+        setCategories(backup);
+        alert(data.error || 'Failed to delete category.');
         fetchAdminData(true);
       }
     } catch (err) {
       console.error(err);
+      setCategories(backup);
+      alert('Network error while deleting category.');
       fetchAdminData(true);
     }
   };
@@ -842,19 +856,26 @@ export default function AdminDashboardClient() {
     }
   };
 
-  // Delete Supplier (Instant Optimistic Update)
+  // Delete Supplier (Instant Optimistic Update with Safe Rollback)
   const handleDeleteSupplier = async (id: string, name: string) => {
     if (!confirm(`Remove supplier "${name}"?`)) return;
+    const backup = [...suppliers];
     setSuppliers((prev) => prev.filter((s) => s._id !== id));
     try {
-      const res = await fetch(`/api/admin/suppliers?id=${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/admin/suppliers?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         showToast(`Supplier "${name}" deleted.`);
+        fetchAdminData(true);
+      } else {
+        setSuppliers(backup);
+        alert(data.error || 'Failed to delete supplier.');
         fetchAdminData(true);
       }
     } catch (err) {
       console.error(err);
+      setSuppliers(backup);
+      alert('Network error while deleting supplier.');
       fetchAdminData(true);
     }
   };

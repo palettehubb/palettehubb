@@ -22,8 +22,14 @@ async function getHomePageData(): Promise<{
     const db = await connectToDatabase();
     if (db) {
       const [prods, cats] = await Promise.all([
-        Product.find({ isFeatured: true, isAvailable: true }).limit(5).lean(),
-        Category.find({ isActive: true }).sort({ order: 1 }).lean(),
+        Product.find({ isFeatured: true, isAvailable: true })
+          .select('name slug price originalPrice discountPercent images rating category stock isFeatured')
+          .limit(8)
+          .lean(),
+        Category.find({ isActive: true })
+          .select('name slug description image itemCount order')
+          .sort({ order: 1 })
+          .lean(),
       ]);
 
       if (prods && prods.length > 0) {
@@ -42,13 +48,12 @@ async function getHomePageData(): Promise<{
     categories = memoryStore.categories;
   }
   if (featuredProducts.length === 0 && memoryStore.products.length > 0) {
-    featuredProducts = memoryStore.products.filter((p) => p.isFeatured).slice(0, 5);
+    featuredProducts = memoryStore.products.filter((p) => p.isFeatured).slice(0, 8);
   }
 
   return { featuredProducts, categories };
 }
 
-export const instant = false;
 
 export default async function HomePage() {
   const { featuredProducts, categories } = await getHomePageData();

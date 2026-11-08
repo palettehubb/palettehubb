@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import connectToDatabase from '@/lib/db';
 import Category from '@/models/Category';
 import { uploadImageToCloudinary, deleteImageFromCloudinary } from '@/lib/cloudinary';
+import memoryStore from '@/lib/memoryStore';
 
 export async function GET() {
   try {
@@ -12,7 +14,7 @@ export async function GET() {
         { success: true, categories },
         {
           headers: {
-            'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
           },
         }
       );
@@ -87,6 +89,11 @@ export async function POST(req: NextRequest) {
       subcategories,
     });
 
+    try {
+      const plain = JSON.parse(JSON.stringify(newCategory));
+      memoryStore.categories = [plain, ...memoryStore.categories.filter(c => c.slug !== plain.slug)];
+    } catch {}
+
     return NextResponse.json({ success: true, category: newCategory }, { status: 201 });
   } catch (error: unknown) {
     console.error('Error creating category:', error);
@@ -114,7 +121,9 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Database unreachable' }, { status: 503 });
     }
 
-    const query = slug ? { slug } : { name: { $regex: new RegExp(`^${categoryName}$`, 'i') } };
+    const query = slug
+      ? (mongoose.isValidObjectId(slug) ? { $or: [{ _id: slug }, { slug }] } : { slug })
+      : { name: { $regex: new RegExp(`^${categoryName}$`, 'i') } };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updates: any = {};
@@ -159,6 +168,13 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Category not found' }, { status: 404 });
     }
 
+    try {
+      const plain = JSON.parse(JSON.stringify(updated));
+      memoryStore.categories = memoryStore.categories.map(c =>
+        c.slug === plain.slug || c._id?.toString() === plain._id?.toString() ? plain : c
+      );
+    } catch {}
+
     return NextResponse.json({ success: true, category: updated });
   } catch (error: unknown) {
     console.error('Error updating category:', error);
@@ -184,12 +200,26 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Database unreachable' }, { status: 503 });
     }
 
-    const query = id ? { _id: id } : { slug };
+    let query: Record<string, unknown>;
+    if (id) {
+      query = mongoose.isValidObjectId(id) ? { _id: id } : { slug: id };
+    } else if (slug) {
+      query = mongoose.isValidObjectId(slug) ? { $or: [{ _id: slug }, { slug }] } : { slug };
+    } else {
+      return NextResponse.json({ success: false, error: 'Slug or ID required' }, { status: 400 });
+    }
+
     const category = await Category.findOneAndDelete(query).lean();
 
     if (!category) {
       return NextResponse.json({ success: false, error: 'Category not found' }, { status: 404 });
     }
+
+    try {
+      memoryStore.categories = memoryStore.categories.filter(
+        c => c.slug !== slug && c.slug !== category.slug && c._id?.toString() !== category._id?.toString()
+      );
+    } catch {}
 
     if (category.image && category.image.includes('cloudinary.com')) {
       deleteImageFromCloudinary(category.image).catch(() => {});
