@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getSupplierSession } from '@/lib/auth';
 import connectToDatabase from '@/lib/db';
 import Supplier from '@/models/Supplier';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await getSupplierSession();
   if (!session) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });

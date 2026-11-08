@@ -46,10 +46,14 @@ export async function verifySupplierToken(token: string): Promise<SupplierSessio
 }
 
 export async function getSupplierSession(): Promise<SupplierSessionPayload | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SUPPLIER_COOKIE_NAME)?.value;
-  if (!token) return null;
-  return verifySupplierToken(token);
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get(SUPPLIER_COOKIE_NAME)?.value;
+    if (!token) return null;
+    return verifySupplierToken(token);
+  } catch {
+    return null;
+  }
 }
 
 // ==================== ADMIN SESSION ====================
@@ -84,10 +88,14 @@ export async function verifyAdminToken(token: string): Promise<AdminSessionPaylo
 }
 
 export async function getAdminSession(): Promise<AdminSessionPayload | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(ADMIN_COOKIE_NAME)?.value;
-  if (!token) return null;
-  return verifyAdminToken(token);
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get(ADMIN_COOKIE_NAME)?.value;
+    if (!token) return null;
+    return verifyAdminToken(token);
+  } catch {
+    return null;
+  }
 }
 
 export { SUPPLIER_COOKIE_NAME, ADMIN_COOKIE_NAME };
