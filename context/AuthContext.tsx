@@ -27,7 +27,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const savedUser = localStorage.getItem('palette_hubb_user');
       if (savedUser) {
-        setUser(JSON.parse(savedUser));
+        const parsed = JSON.parse(savedUser);
+        queueMicrotask(() => setUser(parsed));
       }
     } catch (e) {
       console.error('Failed to load user', e);
@@ -51,12 +52,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role: 'customer',
             createdAt: new Date().toISOString(),
           };
-
     setUser(newUser);
     try {
       localStorage.setItem('palette_hubb_user', JSON.stringify(newUser));
     } catch (e) {
-      console.error(e);
+      console.error('Failed to save user', e);
     }
   };
 
@@ -65,19 +65,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.removeItem('palette_hubb_user');
     } catch (e) {
-      console.error(e);
+      console.error('Failed to remove user', e);
     }
   };
 
+  const isAdmin = user?.role === 'admin';
+
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAdmin: user?.role === 'admin',
-        loginAs,
-        logout,
-      }}
-    >
+    <AuthContext.Provider value={{ user, isAdmin, loginAs, logout }}>
       {children}
     </AuthContext.Provider>
   );

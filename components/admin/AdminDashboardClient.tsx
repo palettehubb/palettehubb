@@ -97,15 +97,20 @@ export default function AdminDashboardClient() {
   const [savingProduct, setSavingProduct] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Color mappings state for Product modal
+  const [colorMappings, setColorMappings] = useState<{ color: string; image: string }[]>([]);
+
   // Category modal state
   const [catModalOpen, setCatModalOpen] = useState(false);
+  const [editingCategorySlug, setEditingCategorySlug] = useState<string | null>(null);
   const [newCatName, setNewCatName] = useState('');
   const [newCatDesc, setNewCatDesc] = useState('');
   const [newCatSubcategories, setNewCatSubcategories] = useState('');
-  const [newCatImage, setNewCatImage] = useState('/images/categories/costume.png');
-  const [catImageMode, setCatImageMode] = useState<'upload' | 'url'>('url');
+  const [newCatImage, setNewCatImage] = useState('');
+  const [catImageMode, setCatImageMode] = useState<'upload' | 'url'>('upload');
   const [savingCategory, setSavingCategory] = useState(false);
   const [quickSubcatInputs, setQuickSubcatInputs] = useState<Record<string, string>>({});
+  const catFileInputRef = useRef<HTMLInputElement>(null);
 
   // Supplier modal state
   const [supModalOpen, setSupModalOpen] = useState(false);
@@ -298,6 +303,81 @@ export default function AdminDashboardClient() {
       alert('Error uploading category image to Cloudinary');
     } finally {
       setUploadingImage(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  // Handle Color Variant Photo Upload to Cloudinary
+  const handleColorImageUpload = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file (PNG, JPG, WEBP).');
+      return;
+    }
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'palettehubb/products/colors');
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success && data.url) {
+        setColorMappings((prev) =>
+          prev.map((item, idx) => (idx === index ? { ...item, image: data.url } : item))
+        );
+        showToast('Color variant photo uploaded to Cloudinary!');
+      } else {
+        alert(data.error || 'Failed to upload color image');
+      }
+    } catch {
+      alert('Error uploading color image');
+    } finally {
+      setUploadingImage(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const addColorMappingRow = () => {
+    setColorMappings((prev) => [...prev, { color: '', image: '' }]);
+  };
+
+  const removeColorMappingRow = (index: number) => {
+    setColorMappings((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const updateColorMapping = (index: number, field: 'color' | 'image', value: string) => {
+    setColorMappings((prev) =>
+      prev.map((item, idx) => (idx === index ? { ...item, [field]: value } : item))
+    );
+  };
+
+  // Secure Order Deletion Handler
+  const handleDeleteOrder = async (orderId: string, orderNumber: string) => {
+    if (!confirm(`Are you sure you want to permanently delete order #${orderNumber}? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data.success) {
+        setOrders((prev) => prev.filter((o) => o._id !== orderId && o.orderNumber !== orderNumber));
+        if (selectedOrder && (selectedOrder._id === orderId || selectedOrder.orderNumber === orderNumber)) {
+          setSelectedOrder(null);
+        }
+        showToast(`Order #${orderNumber} deleted successfully!`);
+        fetchAdminData(true);
+      } else {
+        alert(data.error || 'Failed to delete order');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error deleting order');
     }
   };
 
@@ -330,6 +410,7 @@ export default function AdminDashboardClient() {
     setProdIsFeatured(false);
     setProdSizes('S, M, L, XL');
     setProductImages([]);
+    setColorMappings([]);
     setImageUrlInput('');
     setProductModalOpen(true);
   };
@@ -359,6 +440,13 @@ export default function AdminDashboardClient() {
     setProdIsFeatured(Boolean(p.isFeatured));
     setProdSizes(p.variants?.sizes?.join(', ') || 'S, M, L, XL');
     setProductImages(p.images || []);
+    if (p.variants?.colorImages && Array.isArray(p.variants.colorImages)) {
+      setColorMappings(p.variants.colorImages.map((ci) => ({ color: ci.color || '', image: ci.image || '' })));
+    } else if (p.variants?.colors && p.variants.colors.length > 0) {
+      setColorMappings(p.variants.colors.map((c) => ({ color: c, image: '' })));
+    } else {
+      setColorMappings([]);
+    }
     setImageUrlInput('');
     setProductModalOpen(true);
   };
@@ -380,6 +468,11 @@ export default function AdminDashboardClient() {
       ? customSubcategoryInput.trim()
       : prodSubcategory.trim();
 
+    const validColorMappings = colorMappings
+      .filter((cm) => cm.color.trim())
+      .map((cm) => ({ color: cm.color.trim(), image: cm.image.trim() }));
+    const mappedColorNames = validColorMappings.map((cm) => cm.color);
+
     const payload = {
       name: prodName.trim(),
       category: prodCategory.trim(),
@@ -389,7 +482,11 @@ export default function AdminDashboardClient() {
       description: prodDesc.trim(),
       stock: Number(prodStock) || 0,
       images: imagesToSave,
-      variants: { sizes: sizesArr.length > 0 ? sizesArr : ['Standard'], colors: [] },
+      variants: {
+        sizes: sizesArr.length > 0 ? sizesArr : ['Standard'],
+        colors: mappedColorNames,
+        colorImages: validColorMappings,
+      },
       supplierId: prodSupplierId,
       isFeatured: prodIsFeatured,
     };
@@ -624,8 +721,32 @@ export default function AdminDashboardClient() {
     }
   };
 
-  // Create Category
-  const handleCreateCategory = async (e: React.FormEvent) => {
+  // Open Add Category with full state reset (prevents stale images)
+  const handleOpenAddCategory = () => {
+    setEditingCategorySlug(null);
+    setNewCatName('');
+    setNewCatDesc('');
+    setNewCatSubcategories('');
+    setNewCatImage('');
+    setCatImageMode('upload');
+    if (catFileInputRef.current) catFileInputRef.current.value = '';
+    setCatModalOpen(true);
+  };
+
+  // Open Edit Category
+  const handleOpenEditCategory = (cat: ICategory) => {
+    setEditingCategorySlug(cat.slug);
+    setNewCatName(cat.name);
+    setNewCatDesc(cat.description || '');
+    setNewCatSubcategories((cat.subcategories || []).join(', '));
+    setNewCatImage(cat.image || '');
+    setCatImageMode(cat.image && cat.image.startsWith('http') ? 'url' : 'upload');
+    if (catFileInputRef.current) catFileInputRef.current.value = '';
+    setCatModalOpen(true);
+  };
+
+  // Save Category (Create or Edit)
+  const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCatName.trim()) return;
     setSavingCategory(true);
@@ -636,30 +757,61 @@ export default function AdminDashboardClient() {
       .filter(Boolean);
 
     try {
-      const res = await fetch('/api/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newCatName,
-          description: newCatDesc,
-          image: newCatImage || '/images/categories/costume.png',
-          subcategories: subcats,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        if (data.category) {
-          setCategories((prev) => [data.category, ...prev]);
+      if (editingCategorySlug) {
+        const res = await fetch('/api/categories', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            slug: editingCategorySlug,
+            name: newCatName.trim(),
+            description: newCatDesc.trim(),
+            image: newCatImage.trim() || '/images/categories/costume.png',
+            subcategories: subcats,
+          }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`Category "${newCatName}" updated!`);
+          setCatModalOpen(false);
+          setEditingCategorySlug(null);
+          setNewCatName('');
+          setNewCatDesc('');
+          setNewCatSubcategories('');
+          setNewCatImage('');
+          fetchAdminData(true);
+        } else {
+          alert(data.error || 'Failed to update category');
         }
-        showToast(`Category "${newCatName}" added!`);
-        setCatModalOpen(false);
-        setNewCatName('');
-        setNewCatDesc('');
-        setNewCatSubcategories('');
-        fetchAdminData(true);
+      } else {
+        const res = await fetch('/api/categories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: newCatName.trim(),
+            description: newCatDesc.trim(),
+            image: newCatImage.trim() || '/images/categories/costume.png',
+            subcategories: subcats,
+          }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          if (data.category) {
+            setCategories((prev) => [data.category, ...prev]);
+          }
+          showToast(`Category "${newCatName}" added!`);
+          setCatModalOpen(false);
+          setNewCatName('');
+          setNewCatDesc('');
+          setNewCatSubcategories('');
+          setNewCatImage('');
+          fetchAdminData(true);
+        } else {
+          alert(data.error || 'Failed to create category');
+        }
       }
     } catch (err) {
       console.error(err);
+      alert('Error saving category');
     } finally {
       setSavingCategory(false);
     }
@@ -1459,9 +1611,9 @@ export default function AdminDashboardClient() {
                           <p className="text-[11px] text-neutral-400">{ord.customer.city}, {ord.customer.pincode}</p>
                         </td>
                         <td className="py-4">
-                          {ord.items.map((i) => (
-                            <p key={i.productId} className="text-neutral-700">
-                              {i.quantity}x {i.name} {i.size ? `(${i.size})` : ''}
+                          {ord.items.map((i, idx) => (
+                            <p key={idx} className="text-neutral-700">
+                              {i.quantity}x {i.name} {i.size ? `(${i.size})` : ''} {i.color ? <span className="text-[#985842] font-semibold">[${i.color}]</span> : ''}
                             </p>
                           ))}
                         </td>
@@ -1505,18 +1657,27 @@ export default function AdminDashboardClient() {
                           </span>
                         </td>
                         <td className="py-4 text-right">
-                          <button
-                            onClick={() => {
-                              setSelectedOrder(ord);
-                              setUpdatingStatus(ord.orderStatus);
-                              setSupplierRefInput(ord.supplierOrderRef || '');
-                              setTrackingNumberInput(ord.trackingNumber || '');
-                              setTrackingCarrierInput(ord.trackingCarrier || 'Bluedart Express');
-                            }}
-                            className="bg-black text-white px-3.5 py-1.5 rounded-xl font-semibold hover:bg-neutral-800 transition-colors shadow-xs cursor-pointer"
-                          >
-                            Fulfill / Edit
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => {
+                                setSelectedOrder(ord);
+                                setUpdatingStatus(ord.orderStatus);
+                                setSupplierRefInput(ord.supplierOrderRef || '');
+                                setTrackingNumberInput(ord.trackingNumber || '');
+                                setTrackingCarrierInput(ord.trackingCarrier || 'Bluedart Express');
+                              }}
+                              className="bg-black text-white px-3 py-1.5 rounded-xl font-semibold hover:bg-neutral-800 transition-colors shadow-xs cursor-pointer text-xs"
+                            >
+                              Fulfill / Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteOrder(ord._id, ord.orderNumber)}
+                              className="p-1.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 transition-colors cursor-pointer border border-red-200"
+                              title={`Delete Order #${ord.orderNumber}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1538,7 +1699,7 @@ export default function AdminDashboardClient() {
                 </p>
               </div>
               <button
-                onClick={() => setCatModalOpen(true)}
+                onClick={handleOpenAddCategory}
                 className="inline-flex items-center gap-2 bg-black text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-neutral-800 transition-colors cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
@@ -1637,15 +1798,29 @@ export default function AdminDashboardClient() {
                         target="_blank"
                         className="text-xs font-semibold text-neutral-800 hover:text-black flex items-center gap-1"
                       >
-                        <span>Browse in Shop</span>
+                        <span>Browse</span>
                         <ArrowUpRight className="w-3 h-3" />
                       </Link>
-                      <button
-                        onClick={() => handleDeleteCategory(cat.slug, cat.name)}
-                        className="text-xs text-red-500 hover:text-red-700 font-semibold cursor-pointer"
-                      >
-                        Delete
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditCategory(cat)}
+                          className="inline-flex items-center gap-1 text-xs text-neutral-700 hover:text-black font-semibold cursor-pointer px-2 py-1 rounded-lg hover:bg-neutral-100 transition-colors"
+                          title="Edit Category"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCategory(cat.slug, cat.name)}
+                          className="inline-flex items-center gap-1 text-xs text-red-500 hover:text-red-700 font-semibold cursor-pointer px-2 py-1 rounded-lg hover:bg-red-50 transition-colors"
+                          title="Delete Category"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Delete</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -2113,18 +2288,22 @@ export default function AdminDashboardClient() {
                   </button>
                 </div>
                 <div className="divide-y divide-neutral-100 text-xs">
-                  {orders.slice(0, 5).map((o) => (
-                    <div key={o._id} className="py-2.5 flex items-center justify-between">
-                      <div>
-                        <p className="font-bold text-neutral-900">{o.orderNumber}</p>
-                        <p className="text-[11px] text-neutral-500">{o.customer.fullName}</p>
+                  {orders.length === 0 ? (
+                    <p className="py-6 text-center text-xs text-neutral-400 italic">No customer orders recorded yet.</p>
+                  ) : (
+                    orders.slice(0, 5).map((o) => (
+                      <div key={o._id} className="py-2.5 flex items-center justify-between">
+                        <div>
+                          <p className="font-bold text-neutral-900">{o.orderNumber}</p>
+                          <p className="text-[11px] text-neutral-500">{o.customer.fullName}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-black">$ {o.total.toFixed(2)}</p>
+                          <span className="text-[10px] font-semibold text-neutral-500">{o.orderStatus}</span>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold text-black">$ {o.total.toFixed(2)}</p>
-                        <span className="text-[10px] font-semibold text-neutral-500">{o.orderStatus}</span>
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -2137,22 +2316,26 @@ export default function AdminDashboardClient() {
                   </button>
                 </div>
                 <div className="divide-y divide-neutral-100 text-xs">
-                  {products.filter((p) => p.isFeatured).slice(0, 5).map((p) => (
-                    <div key={p._id} className="py-2.5 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-neutral-100 flex-shrink-0">
-                          <Image src={p.images[0] || '/images/products/oversized-tshirt.png'} alt={p.name} fill className="object-cover" />
+                  {products.filter((p) => p.isFeatured).length === 0 ? (
+                    <p className="py-6 text-center text-xs text-neutral-400 italic">No featured products in catalog yet.</p>
+                  ) : (
+                    products.filter((p) => p.isFeatured).slice(0, 5).map((p) => (
+                      <div key={p._id} className="py-2.5 flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-neutral-100 flex-shrink-0">
+                            <Image src={p.images[0] || '/images/products/oversized-tshirt.png'} alt={p.name} fill className="object-cover" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-neutral-900">{p.name}</p>
+                            <p className="text-[10px] text-neutral-500">{p.category}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-bold text-neutral-900">{p.name}</p>
-                          <p className="text-[10px] text-neutral-500">{p.category}</p>
+                        <div className="text-right font-bold text-black">
+                          $ {p.price.toFixed(2)}
                         </div>
                       </div>
-                      <div className="text-right font-bold text-black">
-                        $ {p.price.toFixed(2)}
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             </div>
@@ -2425,11 +2608,11 @@ export default function AdminDashboardClient() {
                     </div>
                   )}
 
-                  {/* Preview Selected Product Images */}
+                    {/* Preview Selected Product Images (Multiple Upload Support) */}
                   {productImages.length > 0 && (
                     <div className="pt-2">
                       <p className="text-[11px] font-bold text-neutral-500 mb-1.5">
-                        Selected Photos ({productImages.length}):
+                        Selected Product Photos ({productImages.length}) — Shown as Carousel on product page:
                       </p>
                       <div className="flex items-center gap-2.5 flex-wrap">
                         {productImages.map((img, idx) => (
@@ -2446,7 +2629,7 @@ export default function AdminDashboardClient() {
                             <button
                               type="button"
                               onClick={() => removeProductImage(idx)}
-                              className="absolute top-1 right-1 w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="absolute top-1 right-1 w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                               title="Remove"
                             >
                               ✕
@@ -2454,6 +2637,96 @@ export default function AdminDashboardClient() {
                           </div>
                         ))}
                       </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Optional Product Color Mapping Section */}
+                <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200/80 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="block font-bold uppercase text-[11px] text-neutral-900">
+                        Color Variant & Image Mapping (Optional)
+                      </label>
+                      <p className="text-[10px] text-neutral-500">
+                        Map product colors to matching photos. Customers see matching images when selecting each color.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addColorMappingRow}
+                      className="inline-flex items-center gap-1 bg-black text-white text-[11px] font-bold px-3 py-1.5 rounded-xl hover:bg-neutral-800 transition-colors cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add Color</span>
+                    </button>
+                  </div>
+
+                  {colorMappings.length === 0 ? (
+                    <div className="text-center py-3 border border-dashed border-neutral-200 rounded-xl bg-white text-neutral-400 text-[11px]">
+                      No color mappings added yet. Click &quot;+ Add Color&quot; to map colors like Red, Green, or Black to product photos.
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {colorMappings.map((cm, idx) => (
+                        <div
+                          key={idx}
+                          className="bg-white p-3 rounded-xl border border-neutral-200 flex flex-col sm:flex-row items-start sm:items-center gap-3"
+                        >
+                          <div className="w-full sm:w-1/3">
+                            <label className="block text-[10px] font-bold text-neutral-600 uppercase mb-1">
+                              Color Name
+                            </label>
+                            <input
+                              type="text"
+                              value={cm.color}
+                              onChange={(e) => updateColorMapping(idx, 'color', e.target.value)}
+                              placeholder="e.g. Red, Forest Green"
+                              className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-2.5 py-1.5 text-xs font-medium focus:border-black"
+                            />
+                          </div>
+
+                          <div className="flex-1 w-full">
+                            <label className="block text-[10px] font-bold text-neutral-600 uppercase mb-1">
+                              Color Photo (Device Upload or Image URL)
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={cm.image}
+                                onChange={(e) => updateColorMapping(idx, 'image', e.target.value)}
+                                placeholder="Paste image URL or upload →"
+                                className="flex-1 bg-neutral-50 border border-neutral-200 rounded-lg px-2.5 py-1.5 text-xs focus:border-black"
+                              />
+                              <label className="bg-neutral-100 hover:bg-neutral-200 text-neutral-800 px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border border-neutral-200 flex items-center gap-1 shrink-0">
+                                <Upload className="w-3.5 h-3.5" />
+                                <span>Upload</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => handleColorImageUpload(idx, e)}
+                                />
+                              </label>
+                            </div>
+                          </div>
+
+                          {cm.image && (
+                            <div className="relative w-9 h-9 rounded-lg overflow-hidden border border-neutral-300 shrink-0 bg-neutral-100">
+                              <Image src={cm.image} alt={cm.color || 'Color'} fill className="object-cover" />
+                            </div>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => removeColorMappingRow(idx)}
+                            className="text-neutral-400 hover:text-red-600 transition-colors cursor-pointer p-1 shrink-0 self-end sm:self-center"
+                            title="Remove color mapping"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -2607,14 +2880,37 @@ export default function AdminDashboardClient() {
         )}
 
         {/* ---------------------------------------------------- */}
-        {/* ADD CATEGORY MODAL */}
+        {/* ADD / EDIT CATEGORY MODAL */}
         {/* ---------------------------------------------------- */}
         {catModalOpen && (
           <div className="fixed inset-0 z-50 overflow-y-auto flex sm:items-center justify-center p-3 sm:p-4">
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setCatModalOpen(false)} />
+            <div
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => {
+                setCatModalOpen(false);
+                setEditingCategorySlug(null);
+                setNewCatImage('');
+              }}
+            />
             <div className="relative bg-white rounded-2xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-neutral-200 space-y-4 animate-in zoom-in-95 duration-200 my-auto max-h-[92vh] overflow-y-auto">
-              <h3 className="font-bold text-base text-neutral-900">Add New Category</h3>
-              <form onSubmit={handleCreateCategory} className="space-y-3 text-xs">
+              <div className="flex items-center justify-between pb-2 border-b border-neutral-100">
+                <h3 className="font-bold text-base text-neutral-900">
+                  {editingCategorySlug ? 'Edit Category' : 'Add New Category'}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCatModalOpen(false);
+                    setEditingCategorySlug(null);
+                    setNewCatImage('');
+                  }}
+                  className="text-neutral-400 hover:text-black font-bold text-sm cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveCategory} className="space-y-3 text-xs">
                 <div>
                   <label className="block font-bold uppercase mb-1">Category Name *</label>
                   <input
@@ -2654,21 +2950,21 @@ export default function AdminDashboardClient() {
                   <div className="flex gap-2 mb-2">
                     <button
                       type="button"
-                      onClick={() => setCatImageMode('url')}
-                      className={`px-3 py-1 text-xs rounded-lg font-bold ${
-                        catImageMode === 'url' ? 'bg-black text-white' : 'bg-neutral-100 text-neutral-700'
-                      }`}
-                    >
-                      Image URL
-                    </button>
-                    <button
-                      type="button"
                       onClick={() => setCatImageMode('upload')}
-                      className={`px-3 py-1 text-xs rounded-lg font-bold ${
+                      className={`px-3 py-1 text-xs rounded-lg font-bold cursor-pointer ${
                         catImageMode === 'upload' ? 'bg-black text-white' : 'bg-neutral-100 text-neutral-700'
                       }`}
                     >
                       Upload File
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCatImageMode('url')}
+                      className={`px-3 py-1 text-xs rounded-lg font-bold cursor-pointer ${
+                        catImageMode === 'url' ? 'bg-black text-white' : 'bg-neutral-100 text-neutral-700'
+                      }`}
+                    >
+                      Image URL
                     </button>
                   </div>
                   {catImageMode === 'url' ? (
@@ -2680,20 +2976,63 @@ export default function AdminDashboardClient() {
                       className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2"
                     />
                   ) : (
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleCatImageUpload}
-                      className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2"
-                    />
+                    <div className="space-y-2">
+                      <input
+                        type="file"
+                        ref={catFileInputRef}
+                        accept="image/*"
+                        onChange={handleCatImageUpload}
+                        className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2"
+                      />
+                    </div>
+                  )}
+
+                  {/* Category Image Preview */}
+                  {newCatImage && (
+                    <div className="mt-2.5 flex items-center gap-3 p-2 bg-neutral-50 rounded-xl border border-neutral-200">
+                      <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-neutral-300 bg-white shrink-0">
+                        <Image src={newCatImage} alt="Category preview" fill className="object-cover" />
+                      </div>
+                      <div className="flex-1 min-w-0 text-[11px] text-neutral-600 truncate">
+                        <span className="font-semibold text-neutral-900 block">Current Photo Attached</span>
+                        <span className="truncate block text-[10px] text-neutral-400">{newCatImage}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewCatImage('');
+                          if (catFileInputRef.current) catFileInputRef.current.value = '';
+                        }}
+                        className="text-xs text-red-500 hover:text-red-700 font-semibold cursor-pointer"
+                      >
+                        Clear
+                      </button>
+                    </div>
                   )}
                 </div>
+
                 <div className="pt-3 flex justify-end gap-2">
-                  <button type="button" onClick={() => setCatModalOpen(false)} className="px-4 py-2 font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCatModalOpen(false);
+                      setEditingCategorySlug(null);
+                      setNewCatImage('');
+                    }}
+                    className="px-4 py-2 font-semibold cursor-pointer"
+                  >
                     Cancel
                   </button>
-                  <button type="submit" disabled={savingCategory} className="bg-black text-white px-5 py-2 rounded-xl font-bold">
-                    {savingCategory ? 'Creating...' : 'Create Category'}
+                  <button
+                    type="submit"
+                    disabled={savingCategory}
+                    className="bg-black text-white px-5 py-2 rounded-xl font-bold cursor-pointer hover:bg-neutral-800 transition-colors"
+                  >
+                    {savingCategory
+                      ? 'Saving...'
+                      : editingCategorySlug
+                      ? 'Save Changes'
+                      : 'Create Category'}
                   </button>
                 </div>
               </form>

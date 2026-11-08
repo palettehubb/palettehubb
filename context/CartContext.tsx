@@ -1,21 +1,27 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { ICartItem, ICoupon } from '@/types';
+import { ICartItem } from '@/types';
 
 interface CartContextType {
   items: ICartItem[];
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
-  addItem: (product: {
-    _id: string;
-    name: string;
-    slug: string;
-    price: number;
-    originalPrice?: number;
-    images: string[];
-    stock: number;
-  }, quantity?: number, size?: string, color?: string) => void;
+  addItem: (
+    product: {
+      _id: string;
+      name: string;
+      slug: string;
+      price: number;
+      originalPrice?: number;
+      images: string[];
+      stock: number;
+    },
+    quantity?: number,
+    size?: string,
+    color?: string,
+    customImage?: string
+  ) => void;
   removeItem: (productId: string, size?: string, color?: string) => void;
   updateQuantity: (productId: string, quantity: number, size?: string, color?: string) => void;
   clearCart: () => void;
@@ -47,11 +53,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     try {
       const savedCart = localStorage.getItem('palette_hubb_cart');
       if (savedCart) {
-        setItems(JSON.parse(savedCart));
+        const parsedCart = JSON.parse(savedCart);
+        queueMicrotask(() => setItems(parsedCart));
       }
       const savedCoupon = localStorage.getItem('palette_hubb_coupon');
       if (savedCoupon) {
-        setAppliedCoupon(JSON.parse(savedCoupon));
+        const parsedCoupon = JSON.parse(savedCoupon);
+        queueMicrotask(() => setAppliedCoupon(parsedCoupon));
       }
     } catch (e) {
       console.error('Failed to parse cart storage', e);
@@ -91,7 +99,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     },
     quantity = 1,
     size?: string,
-    color?: string
+    color?: string,
+    customImage?: string
   ) => {
     setItems((prev) => {
       const existingIndex = prev.findIndex(
@@ -108,8 +117,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           product.stock || 99
         );
         updated[existingIndex].quantity = newQty;
+        if (customImage) {
+          updated[existingIndex].image = customImage;
+        }
         return updated;
       }
+
+      const chosenImage = customImage || (product.images && product.images[0]) || '/images/products/oversized-tshirt.png';
 
       return [
         ...prev,
@@ -119,7 +133,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           slug: product.slug,
           price: product.price,
           originalPrice: product.originalPrice,
-          image: product.images[0] || '/images/products/oversized-tshirt.png',
+          image: chosenImage,
           quantity: Math.min(quantity, product.stock || 99),
           size,
           color,
@@ -153,7 +167,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       removeItem(productId, size, color);
       return;
     }
-
     setItems((prev) =>
       prev.map((i) => {
         if (
@@ -171,31 +184,56 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const clearCart = () => {
     setItems([]);
     setAppliedCoupon(null);
+    try {
+      localStorage.removeItem('palette_hubb_cart');
+      localStorage.removeItem('palette_hubb_coupon');
+    } catch {}
   };
 
-  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
-  const applyCoupon = async (code: string) => {
+  const applyCoupon = async (code: string): Promise<{ success: boolean; message: string }> => {
     try {
       const res = await fetch('/api/coupons/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, subtotal }),
+        body: JSON.stringify({ code }),
       });
       const data = await res.json();
       if (data.success && data.coupon) {
-        setAppliedCoupon(data.coupon);
-        return { success: true, message: `Coupon ${data.coupon.code} applied!` };
+        const rawSubtotal = items.reduce(
+          (sum, i) => sum + i.price * i.quantity,
+          0
+        );
+
+        let calcDiscount = 0;
+        if (data.coupon.discountType === 'percentage') {
+          calcDiscount = (rawSubtotal * data.coupon.value) / 100;
+        } else {
+          calcDiscount = data.coupon.value;
+        }
+        calcDiscount = Math.min(calcDiscount, rawSubtotal);
+
+        setAppliedCoupon({
+          code: data.coupon.code,
+          discountType: data.coupon.discountType,
+          value: data.coupon.value,
+          calculatedDiscount: calcDiscount,
+        });
+        return { success: true, message: `Coupon ${data.coupon.code} applied successfully!` };
       }
       return { success: false, message: data.error || 'Invalid coupon code' };
-    } catch {
-      return { success: false, message: 'Failed to apply coupon' };
+    } catch (e: unknown) {
+      return { success: false, message: e instanceof Error ? e.message : 'Coupon validation failed' };
     }
   };
 
   const removeCoupon = () => {
     setAppliedCoupon(null);
   };
+
+  const subtotal = items.reduce(
+    (sum, i) => sum + i.price * i.quantity,
+    0
+  );
 
   let discount = 0;
   if (appliedCoupon) {
@@ -207,9 +245,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     discount = Math.min(discount, subtotal);
   }
 
-  const shipping = subtotal === 0 || subtotal >= 50 ? 0 : 5.99;
-  const tax = Math.round((subtotal - discount) * 0.05 * 100) / 100;
-  const total = Math.max(0, Math.round((subtotal - discount + shipping + tax) * 100) / 100);
+  // Free worldwide shipping for orders over $150, else $12 flat
+  const shipping = subtotal > 150 || subtotal === 0 ? 0 : 12;
+  const tax = (subtotal - discount) * 0.05; // 5% GST/VAT
+  const total = Math.max(0, subtotal - discount + shipping + tax);
   const totalItemsCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
   return (
@@ -226,7 +265,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         applyCoupon,
         removeCoupon,
         subtotal,
-        discount: Math.round(discount * 100) / 100,
+        discount,
         shipping,
         tax,
         total,

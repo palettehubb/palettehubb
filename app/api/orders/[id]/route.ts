@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import connectToDatabase from '@/lib/db';
 import Order from '@/models/Order';
 import { notifyOrderUpdated } from '@/lib/realtime';
+import memoryStore from '@/lib/memoryStore';
 
 export async function GET(
   req: NextRequest,
@@ -12,9 +14,11 @@ export async function GET(
     const db = await connectToDatabase();
 
     if (db) {
-      const order = await Order.findOne({
-        $or: [{ orderNumber: id }, { _id: id }],
-      }).lean();
+      const query = mongoose.isValidObjectId(id)
+        ? { $or: [{ orderNumber: id }, { _id: id }] }
+        : { orderNumber: id };
+
+      const order = await Order.findOne(query).lean();
       if (order) {
         return NextResponse.json({ success: true, order });
       }
@@ -60,8 +64,12 @@ export async function PUT(
 
     const db = await connectToDatabase();
     if (db) {
+      const query = mongoose.isValidObjectId(id)
+        ? { $or: [{ orderNumber: id }, { _id: id }] }
+        : { orderNumber: id };
+
       const updated = await Order.findOneAndUpdate(
-        { $or: [{ orderNumber: id }, { _id: id }] },
+        query,
         { $set: updates },
         { new: true }
       ).lean();
@@ -83,6 +91,53 @@ export async function PUT(
     console.error('Error updating order:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to update order' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await context.params;
+    const db = await connectToDatabase();
+
+    if (!db) {
+      return NextResponse.json(
+        { success: false, error: 'Database service is currently unreachable' },
+        { status: 503 }
+      );
+    }
+
+    const query = mongoose.isValidObjectId(id)
+      ? { $or: [{ _id: id }, { orderNumber: id }] }
+      : { orderNumber: id };
+
+    const deleted = await Order.findOneAndDelete(query).lean();
+
+    if (!deleted) {
+      return NextResponse.json(
+        { success: false, error: 'Order not found' },
+        { status: 404 }
+      );
+    }
+
+    try {
+      memoryStore.orders = memoryStore.orders.filter(
+        (o) => o._id !== id && o.orderNumber !== id && o._id?.toString() !== deleted._id?.toString()
+      );
+    } catch {}
+
+    return NextResponse.json({
+      success: true,
+      message: 'Order deleted successfully',
+    });
+  } catch (error: unknown) {
+    console.error('Error deleting order:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to delete order' },
       { status: 500 }
     );
   }

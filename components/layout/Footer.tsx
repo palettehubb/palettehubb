@@ -19,22 +19,22 @@ export default function Footer() {
 
           {/* Navigation Links matching reference */}
           <nav className="flex items-center gap-6 sm:gap-8 text-sm font-medium text-neutral-300 flex-wrap justify-center">
-            <Link href="/" className="hover:text-white transition-colors">
+            <Link href="/" prefetch={true} className="hover:text-white transition-colors">
               Home
             </Link>
-            <Link href="/shop" className="hover:text-white transition-colors">
+            <Link href="/shop" prefetch={true} className="hover:text-white transition-colors">
               Shop
             </Link>
-            <Link href="/track-order" className="hover:text-white transition-colors">
+            <Link href="/track-order" prefetch={true} className="hover:text-white transition-colors">
               Track Order
             </Link>
-            <Link href="/terms" className="hover:text-white transition-colors">
+            <Link href="/terms" prefetch={true} className="hover:text-white transition-colors">
               Terms & Conditions
             </Link>
-            <Link href="/privacy" className="hover:text-white transition-colors">
+            <Link href="/privacy" prefetch={true} className="hover:text-white transition-colors">
               Privacy Policy
             </Link>
-            <Link href="/admin" className="hover:text-white transition-colors">
+            <Link href="/admin" prefetch={true} className="hover:text-white transition-colors">
               Admin
             </Link>
           </nav>
@@ -49,10 +49,8 @@ export default function Footer() {
               aria-label="Palette Hubb on Instagram"
               className="hover:text-white transition-colors"
             >
-              <svg className="w-5 h-5 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
-                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
-                <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
+              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
               </svg>
             </a>
 
@@ -65,7 +63,7 @@ export default function Footer() {
               className="hover:text-white transition-colors"
             >
               <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+                <path d="M9 8H6v4h3v12h5V12h3.642L18 8h-4V6.333C14 5.374 14.5 5 15.667 5H18V0h-3.808C10.595 0 9 1.582 9 4.615V8z" />
               </svg>
             </a>
 
@@ -78,12 +76,11 @@ export default function Footer() {
               className="hover:text-white transition-colors"
             >
               <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/>
-                <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="#0b0c0d"/>
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
               </svg>
             </a>
 
-            {/* X / Twitter */}
+            {/* Twitter / X */}
             <a
               href="https://x.com"
               target="_blank"
@@ -99,36 +96,27 @@ export default function Footer() {
 
         </div>
 
-        {/* Secondary Info & Dropshipping Notice */}
-        <div className="py-6 flex flex-wrap items-center justify-between gap-4 text-xs text-neutral-400 border-b border-neutral-800/60">
-          <p className="max-w-xl leading-relaxed">
-            Palette Hubb is a premier fashion and lifestyle marketplace operating a supplier-fulfilled dropshipping model. All orders are sourced from verified manufacturers and delivered with express tracked shipping.
-          </p>
-          <div className="flex items-center gap-4 text-neutral-400">
-            <span>Verified Dropshipping</span>
-            <span>•</span>
-            <span>100% Buyer Protection</span>
-            <span>•</span>
-            <span>Stripe Secure</span>
+        {/* Legal, Returns & Copyright Row */}
+        <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-neutral-400">
+          
+          <div className="flex items-center gap-2">
+            <span>&copy; 2026 Palette Hubb Inc. All rights reserved.</span>
+            <span className="text-neutral-600">•</span>
+            <span className="text-emerald-500 font-medium">SSL Encrypted Checkout</span>
           </div>
-        </div>
 
-        {/* Bottom Row matching reference */}
-        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
-          <div className="flex flex-wrap items-center gap-3">
-            <p>© 2026 Palette Hubb. All rights reserved.</p>
-            <span>•</span>
-            <Link href="/terms" className="hover:text-neutral-300 transition-colors underline underline-offset-4">
+          <div className="flex items-center gap-6">
+            <span className="text-neutral-500">
+              3-Day Return Window (Requires Unboxing Video)
+            </span>
+            <Link href="/terms" prefetch={true} className="hover:text-neutral-300 transition-colors underline underline-offset-4">
               Terms & Conditions
             </Link>
-            <span>•</span>
-            <Link href="/privacy" className="hover:text-neutral-300 transition-colors underline underline-offset-4">
+            <Link href="/privacy" prefetch={true} className="hover:text-neutral-300 transition-colors underline underline-offset-4">
               Privacy Policy
             </Link>
           </div>
-          <p className="tracking-wider uppercase font-medium text-neutral-400">
-            Fashion &nbsp;|&nbsp; Accessories &nbsp;|&nbsp; Lifestyle
-          </p>
+
         </div>
 
       </div>

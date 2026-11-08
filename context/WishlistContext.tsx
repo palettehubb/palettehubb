@@ -17,7 +17,8 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
     try {
       const saved = localStorage.getItem('palette_hubb_wishlist');
       if (saved) {
-        setWishlist(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        queueMicrotask(() => setWishlist(parsed));
       }
     } catch (e) {
       console.error('Failed to load wishlist', e);

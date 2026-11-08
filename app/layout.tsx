@@ -1,19 +1,8 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import Providers from '@/components/Providers';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
-
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://palettehubb.com'),
@@ -30,6 +19,11 @@ export const metadata: Metadata = {
     'accessories',
     'Indian ecommerce',
   ],
+  icons: {
+    icon: '/images/phlogo.jpeg',
+    shortcut: '/images/phlogo.jpeg',
+    apple: '/images/phlogo.jpeg',
+  },
   openGraph: {
     title: 'Palette Hubb — Premier Fashion & Lifestyle Store',
     description:
@@ -49,15 +43,17 @@ export const metadata: Metadata = {
   },
 };
 
-export const instant = false;
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="en">
+      <head>
+        <link rel="icon" href="/images/phlogo.jpeg" />
+        <link rel="apple-touch-icon" href="/images/phlogo.jpeg" />
+      </head>
       <body className="min-h-screen flex flex-col bg-[#f7f5ee] text-neutral-900 antialiased selection:bg-black selection:text-white">
         <Providers>
           <Navbar />

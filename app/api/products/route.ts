@@ -122,7 +122,6 @@ export async function POST(req: NextRequest) {
       for (const img of body.images) {
         if (typeof img === 'string') {
           if (img.startsWith('data:image/')) {
-            // Upload to Cloudinary
             const uploadRes = await uploadImageToCloudinary(img, 'palettehubb/products');
             processedImages.push(uploadRes.secure_url);
           } else {
@@ -130,6 +129,24 @@ export async function POST(req: NextRequest) {
           }
         }
       }
+    }
+
+    const variants = body.variants || { sizes: ['Standard'], colors: [] };
+    if (variants.colorImages && Array.isArray(variants.colorImages)) {
+      const processedColorImages = [];
+      for (const ci of variants.colorImages) {
+        if (!ci || !ci.color) continue;
+        let cImg = ci.image || '';
+        if (typeof cImg === 'string' && cImg.startsWith('data:image/')) {
+          const uploadRes = await uploadImageToCloudinary(cImg, 'palettehubb/products/colors');
+          cImg = uploadRes.secure_url;
+        }
+        processedColorImages.push({ color: String(ci.color).trim(), image: cImg });
+      }
+      variants.colorImages = processedColorImages;
+      const mappedColorNames = processedColorImages.map((ci) => ci.color);
+      const existingColors = Array.isArray(variants.colors) ? variants.colors : [];
+      variants.colors = Array.from(new Set([...existingColors, ...mappedColorNames]));
     }
 
     const cleanSlug = (
@@ -159,7 +176,7 @@ export async function POST(req: NextRequest) {
       discountPercent,
       images: processedImages,
       stock: body.stock !== undefined ? Math.max(0, Number(body.stock)) : 10,
-      variants: body.variants || { sizes: ['Standard'], colors: [] },
+      variants,
       rating: 5.0,
       reviewsCount: 0,
       salesCount: 0,

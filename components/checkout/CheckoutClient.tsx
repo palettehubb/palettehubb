@@ -17,23 +17,32 @@ import { useCart } from '@/context/CartContext';
 import { IShippingAddress, IOrder } from '@/types';
 import PayPalButton from '@/components/checkout/PayPalButton';
 
-const POPULAR_COUNTRIES = [
-  'United States',
-  'United Kingdom',
-  'Canada',
-  'Australia',
-  'Germany',
-  'France',
-  'India',
-  'United Arab Emirates',
-  'Saudi Arabia',
-  'Singapore',
-  'Japan',
-  'Netherlands',
-  'Spain',
-  'Italy',
-  'Sweden',
-  'New Zealand',
+const ALL_COUNTRIES = [
+  'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda', 'Argentina', 'Armenia',
+  'Australia', 'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus',
+  'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil',
+  'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi', 'Cabo Verde', 'Cambodia', 'Cameroon', 'Canada',
+  'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Congo (Congo-Brazzaville)',
+  'Costa Rica', 'Croatia', 'Cuba', 'Cyprus', 'Czech Republic (Czechia)', 'Democratic Republic of the Congo',
+  'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic', 'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea',
+  'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia', 'Fiji', 'Finland', 'France', 'Gabon', 'Gambia', 'Georgia',
+  'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana', 'Haiti',
+  'Honduras', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy',
+  'Ivory Coast', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', 'Kuwait', 'Kyrgyzstan',
+  'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg',
+  'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands', 'Mauritania',
+  'Mauritius', 'Mexico', 'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro', 'Morocco',
+  'Mozambique', 'Myanmar (Burma)', 'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua',
+  'Niger', 'Nigeria', 'North Korea', 'North Macedonia', 'Norway', 'Oman', 'Pakistan', 'Palau',
+  'Palestine State', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal',
+  'Qatar', 'Romania', 'Russia', 'Rwanda', 'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent and the Grenadines',
+  'Samoa', 'San Marino', 'Sao Tome and Principe', 'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles',
+  'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa',
+  'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland',
+  'Syria', 'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Timor-Leste', 'Togo', 'Tonga',
+  'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine',
+  'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu',
+  'Vatican City', 'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe'
 ];
 
 export default function CheckoutClient() {
@@ -98,21 +107,19 @@ export default function CheckoutClient() {
     }, 2200);
   };
 
-  if (items.length === 0 && !showCelebration) {
+  if (items.length === 0 && !completedOrder) {
     return (
-      <div className="bg-[#f7f5ee] min-h-screen py-20 flex items-center justify-center">
-        <div className="max-w-md w-full mx-4 bg-white p-8 rounded-3xl shadow-sm text-center border border-neutral-200">
-          <h2 className="text-xl font-bold text-neutral-900 mb-2">Your Bag is Empty</h2>
-          <p className="text-xs text-neutral-500 mb-6">
-            You cannot proceed to checkout without adding products to your bag.
-          </p>
-          <Link
-            href="/shop"
-            className="inline-block bg-black text-white text-xs font-semibold px-6 py-3 rounded-full hover:bg-neutral-800 transition-colors"
-          >
-            Explore Catalog
-          </Link>
-        </div>
+      <div className="min-h-[65vh] flex flex-col items-center justify-center px-4 text-center">
+        <h2 className="text-xl font-bold text-neutral-900 mb-2">Your Bag is Empty</h2>
+        <p className="text-xs text-neutral-500 mb-6 max-w-sm">
+          Add items to your cart before proceeding to the checkout section.
+        </p>
+        <Link
+          href="/shop"
+          className="inline-block bg-black text-white text-xs font-semibold px-6 py-3 rounded-full hover:bg-neutral-800 transition-colors"
+        >
+          Explore Catalog
+        </Link>
       </div>
     );
   }
@@ -170,33 +177,33 @@ export default function CheckoutClient() {
               Shop
             </Link>
             <span>/</span>
-            <span className="text-black font-semibold">Secure Checkout</span>
+            <span className="text-neutral-900 font-semibold">Secure Checkout</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight flex items-center gap-2.5">
-            <Lock className="w-6 h-6 text-emerald-700" />
-            <span>Express Dropship Checkout</span>
+          <h1 className="text-2xl sm:text-3xl font-black text-neutral-900 tracking-tight">
+            Checkout & Fulfillment
           </h1>
-          <p className="text-xs text-neutral-500 mt-1">
-            256-Bit SSL Encrypted. Direct dispatch from verified supplier hubs.
+          <p className="text-xs sm:text-sm text-neutral-500 mt-1">
+            Orders are processed immediately and routed to verified dropship suppliers.
           </p>
         </div>
 
+        {/* Global Error Banner */}
         {errorMessage && (
-          <div className="mb-6 p-4 rounded-2xl bg-red-50 border border-red-200 flex items-center gap-3 text-red-800 text-xs font-medium">
-            <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-600" />
-            <span>{errorMessage}</span>
+          <div className="mb-6 p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-3">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span className="font-semibold">{errorMessage}</span>
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Left Column: Customer & Shipping Details */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+          {/* Left Column: Shipping Address & Payment Selection */}
           <div className="lg:col-span-7 space-y-6">
+            
+            {/* Shipping Address Card */}
             <div className="bg-white p-6 sm:p-8 rounded-3xl border border-neutral-200/80 shadow-sm space-y-4">
               <h2 className="text-base font-bold text-neutral-900 pb-3 border-b border-neutral-100 flex items-center justify-between">
-                <span>Shipping & Customer Details</span>
-                <span className="text-xs font-normal text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                  Step 1 of 2
-                </span>
+                <span>1. Shipping & Delivery Address</span>
+                <span className="text-xs text-neutral-400 font-normal">All fields required</span>
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -256,7 +263,7 @@ export default function CheckoutClient() {
                     onChange={handleInputChange}
                     className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 focus:outline-none focus:border-black cursor-pointer"
                   >
-                    {POPULAR_COUNTRIES.map((c) => (
+                    {ALL_COUNTRIES.map((c) => (
                       <option key={c} value={c}>
                         {c}
                       </option>
@@ -303,7 +310,7 @@ export default function CheckoutClient() {
                     type="text"
                     name="city"
                     required
-                    placeholder="e.g. New York or London"
+                    placeholder="e.g. New York or Toronto"
                     value={address.city}
                     onChange={handleInputChange}
                     className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 focus:outline-none focus:border-black"
@@ -365,7 +372,7 @@ export default function CheckoutClient() {
               <div className="space-y-3 max-h-60 overflow-y-auto divide-y divide-neutral-100 pr-1">
                 {items.map((item) => (
                   <div
-                    key={`${item.productId}-${item.size}`}
+                    key={`${item.productId}-${item.size}-${item.color}`}
                     className="pt-3 first:pt-0 flex items-center gap-3"
                   >
                     <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-neutral-100 flex-shrink-0 border border-neutral-200">
@@ -376,7 +383,7 @@ export default function CheckoutClient() {
                         {item.name}
                       </h4>
                       <p className="text-[11px] text-neutral-500">
-                        Qty: {item.quantity} {item.size ? `• Size: ${item.size}` : ''}
+                        Qty: {item.quantity} {item.size ? `• Size: ${item.size}` : ''} {item.color ? `• Color: ${item.color}` : ''}
                       </p>
                     </div>
                     <span className="text-xs font-bold text-neutral-900">
@@ -409,31 +416,31 @@ export default function CheckoutClient() {
                   <span>Dropship Fulfillment</span>
                   <span className="font-semibold text-neutral-900">
                     {shipping === 0 ? (
-                      <span className="text-emerald-700 font-bold">FREE</span>
+                      <span className="text-emerald-700 font-bold">FREE Delivery</span>
                     ) : (
-                      `$${shipping.toFixed(2)}`
+                      `$${shipping.toFixed(2)} USD`
                     )}
                   </span>
                 </div>
 
                 <div className="flex justify-between">
-                  <span>Applicable Tax (5%)</span>
+                  <span>Estimated Tax (5%)</span>
                   <span>${tax.toFixed(2)}</span>
                 </div>
 
-                <div className="border-t border-neutral-200 pt-3 flex justify-between text-base font-extrabold text-neutral-900">
+                <div className="border-t border-neutral-200 pt-3 flex justify-between text-sm sm:text-base font-black text-neutral-900">
                   <span>Total Amount</span>
                   <span>${total.toFixed(2)} USD</span>
                 </div>
               </div>
 
-              {/* Mandatory Policy Agreement Checkbox */}
+              {/* Mandatory 3-Day Return Policy & Unboxing video agreement */}
               <div className="pt-1">
                 <label
                   className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer select-none transition-colors ${
                     !agreedToReturnPolicy && errorMessage?.includes('Return Policy')
                       ? 'bg-red-50/60 border-red-300'
-                      : 'bg-neutral-50 hover:bg-neutral-100/70 border-neutral-200/80'
+                      : 'bg-neutral-50 hover:bg-neutral-100 border-neutral-200'
                   }`}
                 >
                   <input

@@ -71,6 +71,24 @@ export async function PUT(
       body.images = processed;
     }
 
+    // Process colorImages base64 to Cloudinary
+    if (body.variants?.colorImages && Array.isArray(body.variants.colorImages)) {
+      const processedColorImages = [];
+      for (const ci of body.variants.colorImages) {
+        if (!ci || !ci.color) continue;
+        let cImg = ci.image || '';
+        if (typeof cImg === 'string' && cImg.startsWith('data:image/')) {
+          const uploadRes = await uploadImageToCloudinary(cImg, 'palettehubb/products/colors');
+          cImg = uploadRes.secure_url;
+        }
+        processedColorImages.push({ color: String(ci.color).trim(), image: cImg });
+      }
+      body.variants.colorImages = processedColorImages;
+      const mappedColors = processedColorImages.map((ci) => ci.color);
+      const existing = Array.isArray(body.variants.colors) ? body.variants.colors : [];
+      body.variants.colors = Array.from(new Set([...existing, ...mappedColors]));
+    }
+
     if (body.price !== undefined) {
       body.price = Math.max(0, Number(body.price) || 0);
     }
@@ -101,13 +119,12 @@ export async function PUT(
 
     try {
       notifyProductUpdated(updated);
-      memoryStore.products = memoryStore.products.map(p => (p.slug === slug || p._id?.toString() === slug ? updated : p));
+      memoryStore.products = memoryStore.products.map(p =>
+        p.slug === slug || p._id?.toString() === updated._id?.toString() ? updated : p
+      );
     } catch {}
 
-    return NextResponse.json({
-      success: true,
-      product: updated,
-    });
+    return NextResponse.json({ success: true, product: updated });
   } catch (error: unknown) {
     console.error('Error updating product:', error);
     return NextResponse.json(
@@ -124,6 +141,7 @@ export async function DELETE(
   try {
     const { slug } = await context.params;
     const db = await connectToDatabase();
+
     if (!db) {
       return NextResponse.json(
         { success: false, error: 'Database service is currently unreachable' },
@@ -139,13 +157,12 @@ export async function DELETE(
 
     try {
       notifyProductDeleted({ slug, id: product._id?.toString() });
-      memoryStore.products = memoryStore.products.filter(p => p.slug !== slug && p._id?.toString() !== slug && p._id?.toString() !== product._id?.toString());
+      memoryStore.products = memoryStore.products.filter(p => p.slug !== slug && p._id?.toString() !== product._id?.toString());
     } catch {}
 
-    // Remove images from Cloudinary to keep free tier clean
     if (Array.isArray(product.images)) {
       for (const img of product.images) {
-        if (typeof img === 'string' && img.includes('cloudinary.com')) {
+        if (img && img.includes('cloudinary.com')) {
           deleteImageFromCloudinary(img).catch(() => {});
         }
       }

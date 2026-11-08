@@ -12,6 +12,11 @@ export interface ICategory {
   updatedAt?: string;
 }
 
+export interface IColorMapping {
+  color: string;
+  image: string;
+}
+
 export interface IProduct {
   _id: string;
   name: string;
@@ -27,6 +32,7 @@ export interface IProduct {
   variants?: {
     sizes?: string[];
     colors?: string[];
+    colorImages?: IColorMapping[];
   };
   rating?: number;
   reviewsCount?: number;

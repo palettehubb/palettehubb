@@ -11,6 +11,8 @@ import { IProduct, ICategory } from '@/types';
 
 // Pre-rendered statically with cacheComponents: eliminates loading spinner buffer for visitors
 
+export const instant = false;
+
 async function getHomePageData(): Promise<{
   featuredProducts: IProduct[];
   categories: ICategory[];

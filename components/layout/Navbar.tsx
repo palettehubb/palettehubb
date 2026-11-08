@@ -7,15 +7,14 @@ import {
   Search,
   ShoppingBag,
   Heart,
-  ChevronDown,
   Menu,
   X,
-  Package,
+  ChevronDown,
 } from 'lucide-react';
-import Logo from '@/components/ui/Logo';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { ICategory } from '@/types';
+import Logo from '@/components/ui/Logo';
 
 export default function Navbar() {
   const router = useRouter();
@@ -60,12 +59,14 @@ export default function Navbar() {
           <nav className="hidden lg:flex items-center gap-6 xl:gap-8 text-neutral-800 text-[14px] font-medium">
             <Link
               href="/"
+              prefetch={true}
               className="hover:text-black transition-colors hover:underline underline-offset-8"
             >
               Home
             </Link>
             <Link
               href="/shop"
+              prefetch={true}
               className="hover:text-black transition-colors hover:underline underline-offset-8"
             >
               Shop
@@ -86,6 +87,8 @@ export default function Navbar() {
                 >
                   <Link
                     href={`/shop?category=${encodeURIComponent(catSlug)}`}
+                    prefetch={true}
+                    onClick={() => setActiveDropdown(null)}
                     className="flex items-center gap-1 hover:text-black transition-colors"
                   >
                     <span>{catName}</span>
@@ -103,6 +106,8 @@ export default function Navbar() {
 
                       <Link
                         href={`/shop?category=${encodeURIComponent(catSlug)}`}
+                        prefetch={true}
+                        onClick={() => setActiveDropdown(null)}
                         className="flex items-center justify-between px-3 py-2 text-xs font-bold text-neutral-900 hover:bg-neutral-100 rounded-xl transition-colors"
                       >
                         <span>All {catName}</span>
@@ -115,6 +120,8 @@ export default function Navbar() {
                         <Link
                           key={sub}
                           href={`/shop?category=${encodeURIComponent(catSlug)}&subcategory=${encodeURIComponent(sub)}`}
+                          prefetch={true}
+                          onClick={() => setActiveDropdown(null)}
                           className="flex items-center justify-between px-3 py-2 text-xs font-semibold text-neutral-700 hover:text-black hover:bg-neutral-100 rounded-xl transition-colors"
                         >
                           <span>{sub}</span>
@@ -128,6 +135,7 @@ export default function Navbar() {
 
             <Link
               href="/track-order"
+              prefetch={true}
               className="hover:text-black transition-colors hover:underline underline-offset-8"
             >
               Track Order
@@ -139,189 +147,175 @@ export default function Navbar() {
             onSubmit={handleSearchSubmit}
             className="hidden md:flex items-center relative max-w-xs xl:max-w-sm w-full"
           >
-            <Search className="w-4 h-4 text-neutral-400 absolute left-4 pointer-events-none" />
+            <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 pointer-events-none" />
             <input
               type="text"
+              placeholder="Search collections..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search collections..."
-              className="w-full bg-[#eeeae0] text-neutral-800 placeholder:text-neutral-500 text-xs rounded-full py-2.5 pl-10 pr-4 focus:outline-none focus:ring-1 focus:ring-black border-transparent"
+              className="w-full bg-[#ece8de]/70 hover:bg-[#ece8de] focus:bg-white text-xs text-neutral-900 placeholder:text-neutral-500 rounded-full pl-9 pr-4 py-2 border border-transparent focus:border-neutral-300 transition-all outline-none"
             />
           </form>
 
-          {/* Right Action Icons: Wishlist & Bag */}
-          <div className="flex items-center gap-3 sm:gap-4">
-            {/* Wishlist Link */}
+          {/* Right: Wishlist, Shopping Bag Icon & Mobile Toggle */}
+          <div className="flex items-center gap-3">
+            {/* Wishlist Icon */}
             <Link
               href="/shop?wishlist=true"
+              prefetch={true}
               className="relative p-2 rounded-full hover:bg-[#ece8de] text-neutral-800 transition-colors"
-              title="My Wishlist"
+              title="Saved items"
             >
               <Heart className="w-5 h-5" />
               {wishlist.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-600 text-white font-bold text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
+                <span className="absolute top-1 right-1 w-4 h-4 bg-[#985842] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                   {wishlist.length}
                 </span>
               )}
             </Link>
 
-            {/* Shopping Bag Button with totalItemsCount Pill */}
+            {/* Shopping Bag Button (triggering slide-over) */}
             <button
               onClick={() => setIsOpen(true)}
-              className="relative flex items-center gap-2 bg-black hover:bg-neutral-800 text-white text-xs font-semibold px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full shadow-sm transition-all duration-200 cursor-pointer"
+              className="relative p-2 rounded-full hover:bg-[#ece8de] text-neutral-800 transition-colors cursor-pointer"
+              aria-label="View shopping bag"
             >
-              <ShoppingBag className="w-4 h-4" />
-              <span className="hidden sm:inline">Bag</span>
+              <ShoppingBag className="w-5 h-5" />
               {totalItemsCount > 0 && (
-                <span className="bg-[#e4d5be] text-black font-extrabold text-[11px] px-1.5 py-0.2 rounded-full min-w-[18px] text-center">
+                <span className="absolute top-1 right-1 w-4 h-4 bg-black text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-in zoom-in">
                   {totalItemsCount}
                 </span>
               )}
             </button>
 
-            {/* Mobile Menu Hamburger Toggle */}
+            {/* Mobile Menu Hamburger */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg text-neutral-800 hover:bg-[#ece8de] lg:hidden transition-colors"
-              aria-label="Toggle Navigation Menu"
+              className="p-2 rounded-full hover:bg-[#ece8de] text-neutral-800 lg:hidden transition-colors"
+              aria-label="Toggle navigation"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </div>
+      </div>
 
-        {/* Mobile Slide-down Menu Drawer */}
-        {mobileMenuOpen && (
-          <div className="lg:hidden border-t border-[#ded7ca] py-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
-            {/* Mobile Search */}
-            <form onSubmit={handleSearchSubmit} className="relative px-2">
-              <Search className="w-4 h-4 text-neutral-400 absolute left-5 top-3 pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search collections..."
-                className="w-full bg-[#eeeae0] text-neutral-800 placeholder:text-neutral-500 text-xs rounded-full py-2.5 pl-10 pr-4 focus:outline-none focus:ring-1 focus:ring-black"
-              />
-            </form>
+      {/* Mobile Drawer Navigation */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden bg-[#f7f5ee] border-b border-[#e5dfd3] px-4 pt-3 pb-6 animate-in slide-in-from-top-4 duration-200">
+          {/* Mobile Search input */}
+          <form onSubmit={handleSearchSubmit} className="relative mb-4">
+            <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-3" />
+            <input
+              type="text"
+              placeholder="Search collections..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white text-xs text-neutral-900 rounded-full pl-9 pr-4 py-2.5 border border-neutral-200 outline-none"
+            />
+          </form>
 
-            {/* Mobile Links */}
-            <div className="flex flex-col space-y-1 px-2">
-              <Link
-                href="/"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-3.5 py-2.5 rounded-lg text-sm font-medium text-neutral-800 hover:bg-white transition-colors"
-              >
-                Home
-              </Link>
-              <Link
-                href="/shop"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium text-neutral-800 hover:bg-white transition-colors"
-              >
-                <span className="flex items-center gap-2">
-                  <ShoppingBag className="w-4 h-4 text-black" />
-                  Shop All Products
-                </span>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-black px-2 py-0.5 rounded-full">
-                  Shop
-                </span>
-              </Link>
+          <nav className="flex flex-col gap-1 text-sm font-semibold text-neutral-800">
+            <Link
+              href="/"
+              prefetch={true}
+              onClick={() => setMobileMenuOpen(false)}
+              className="py-2.5 px-3 rounded-xl hover:bg-[#ece8de] transition-colors"
+            >
+              Home
+            </Link>
+            <Link
+              href="/shop"
+              prefetch={true}
+              onClick={() => setMobileMenuOpen(false)}
+              className="py-2.5 px-3 rounded-xl hover:bg-[#ece8de] transition-colors"
+            >
+              Shop
+            </Link>
 
-              {categories.length > 0 && (
-                <div className="pt-2 pb-1 px-3 text-[11px] font-bold text-neutral-400 uppercase tracking-wider">
-                  Categories & Subcategories
-                </div>
-              )}
+            {/* Mobile Categories Accordion */}
+            {categories.map((cat) => {
+              const catName = cat.name;
+              const catSlug = cat.slug || cat.name;
+              const subcategories = cat.subcategories || [];
+              const isCatOpen = mobileCategoryOpen === catName;
 
-              {/* Dynamic Mobile Categories & Subcategories */}
-              {categories.map((cat) => {
-                const catName = cat.name;
-                const catSlug = cat.slug || cat.name;
-                const subcategories = cat.subcategories || [];
-                const isExpanded = mobileCategoryOpen === catName;
-
-                return (
-                  <div key={cat._id || catSlug} className="space-y-1">
-                    <div className="flex items-center justify-between px-3.5 py-2 rounded-lg text-sm font-medium text-neutral-800 hover:bg-white transition-colors">
-                      <Link
-                        href={`/shop?category=${encodeURIComponent(catSlug)}`}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="flex-1 font-semibold"
+              return (
+                <div key={cat._id || catSlug} className="border-t border-neutral-200/60 pt-1">
+                  {subcategories.length > 0 ? (
+                    <div>
+                      <button
+                        onClick={() =>
+                          setMobileCategoryOpen(isCatOpen ? null : catName)
+                        }
+                        className="w-full py-2 px-3 rounded-xl hover:bg-[#ece8de] flex items-center justify-between text-left transition-colors"
                       >
-                        {catName}
-                      </Link>
-                      {subcategories.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setMobileCategoryOpen(isExpanded ? null : catName);
-                          }}
-                          className="p-1 text-neutral-500 hover:text-black cursor-pointer"
-                        >
-                          <ChevronDown
-                            className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
-                          />
-                        </button>
+                        <span>{catName}</span>
+                        <ChevronDown
+                          className={`w-4 h-4 transition-transform duration-200 ${
+                            isCatOpen ? 'rotate-180' : ''
+                          }`}
+                        />
+                      </button>
+
+                      {isCatOpen && (
+                        <div className="pl-5 pr-2 py-1 space-y-1 bg-[#ece8de]/40 rounded-xl my-1 animate-in slide-in-from-top-1">
+                          <Link
+                            href={`/shop?category=${encodeURIComponent(catSlug)}`}
+                            prefetch={true}
+                            onClick={() => setMobileMenuOpen(false)}
+                            className="block py-1.5 text-xs font-bold text-neutral-900"
+                          >
+                            All {catName} →
+                          </Link>
+                          {subcategories.map((sub) => (
+                            <Link
+                              key={sub}
+                              href={`/shop?category=${encodeURIComponent(catSlug)}&subcategory=${encodeURIComponent(sub)}`}
+                              prefetch={true}
+                              onClick={() => setMobileMenuOpen(false)}
+                              className="block py-1.5 text-xs text-neutral-600 hover:text-black font-normal"
+                            >
+                              {sub}
+                            </Link>
+                          ))}
+                        </div>
                       )}
                     </div>
-
-                    {isExpanded && subcategories.length > 0 && (
-                      <div className="ml-4 pl-3 border-l-2 border-neutral-200 space-y-1 py-1 animate-in fade-in duration-150">
-                        <Link
-                          href={`/shop?category=${encodeURIComponent(catSlug)}`}
-                          onClick={() => setMobileMenuOpen(false)}
-                          className="block px-2.5 py-1.5 text-xs font-bold text-neutral-900 hover:bg-white rounded-md"
-                        >
-                          All {catName}
-                        </Link>
-                        {subcategories.map((sub) => (
-                          <Link
-                            key={sub}
-                            href={`/shop?category=${encodeURIComponent(catSlug)}&subcategory=${encodeURIComponent(sub)}`}
-                            onClick={() => setMobileMenuOpen(false)}
-                            className="block px-2.5 py-1.5 text-xs font-medium text-neutral-600 hover:text-black hover:bg-white rounded-md"
-                          >
-                            {sub}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-              <div className="pt-2 border-t border-neutral-200/60 space-y-1">
-                <Link
-                  href="/track-order"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg text-sm font-medium text-neutral-800 hover:bg-white transition-colors"
-                >
-                  <Package className="w-4 h-4 text-neutral-500" />
-                  <span>Track Your Order</span>
-                </Link>
-
-                <Link
-                  href="/shop?wishlist=true"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium text-neutral-800 hover:bg-white transition-colors"
-                >
-                  <span className="flex items-center gap-2">
-                    <Heart className="w-4 h-4 text-neutral-500" />
-                    <span>My Wishlist</span>
-                  </span>
-                  {wishlist.length > 0 && (
-                    <span className="text-xs bg-red-100 text-red-600 font-bold px-2 py-0.5 rounded-full">
-                      {wishlist.length}
-                    </span>
+                  ) : (
+                    <Link
+                      href={`/shop?category=${encodeURIComponent(catSlug)}`}
+                      prefetch={true}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block py-2.5 px-3 rounded-xl hover:bg-[#ece8de] transition-colors"
+                    >
+                      {catName}
+                    </Link>
                   )}
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+                </div>
+              );
+            })}
+
+            <Link
+              href="/track-order"
+              prefetch={true}
+              onClick={() => setMobileMenuOpen(false)}
+              className="py-2.5 px-3 rounded-xl hover:bg-[#ece8de] transition-colors border-t border-neutral-200/60"
+            >
+              Track Order
+            </Link>
+
+            <Link
+              href="/shop?wishlist=true"
+              prefetch={true}
+              onClick={() => setMobileMenuOpen(false)}
+              className="py-2.5 px-3 rounded-xl hover:bg-[#ece8de] transition-colors"
+            >
+              Wishlist ({wishlist.length})
+            </Link>
+          </nav>
+        </div>
+      )}
     </header>
   );
 }

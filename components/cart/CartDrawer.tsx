@@ -133,6 +133,11 @@ export default function CartDrawer() {
                           Size: <span className="text-neutral-800 font-medium">{item.size}</span>
                         </p>
                       )}
+                      {item.color && (
+                        <p className="text-xs text-neutral-500 mt-0.5">
+                          Color: <span className="text-neutral-800 font-medium">{item.color}</span>
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-between mt-2">

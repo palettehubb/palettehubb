@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { connection } from 'next/server';
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
@@ -26,7 +27,14 @@ if (!global.mongooseCache) {
 }
 
 export async function connectToDatabase(): Promise<typeof mongoose | null> {
-  if (cached.conn) {
+  try {
+    if (typeof connection === 'function') {
+      await connection();
+    }
+  } catch {
+    // Non-RSC context or scripts
+  }
+  if (cached.conn && mongoose.connection.readyState === 1) {
     return cached.conn;
   }
 

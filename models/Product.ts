@@ -1,5 +1,10 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export interface IColorMappingDoc {
+  color: string;
+  image: string;
+}
+
 export interface IProductDoc extends Document {
   name: string;
   slug: string;
@@ -14,6 +19,7 @@ export interface IProductDoc extends Document {
   variants: {
     sizes: string[];
     colors: string[];
+    colorImages?: IColorMappingDoc[];
   };
   rating: number;
   reviewsCount: number;
@@ -41,6 +47,15 @@ const ProductSchema = new Schema<IProductDoc>(
     variants: {
       sizes: { type: [String], default: [] },
       colors: { type: [String], default: [] },
+      colorImages: {
+        type: [
+          {
+            color: { type: String, default: '', trim: true },
+            image: { type: String, default: '', trim: true },
+          },
+        ],
+        default: [],
+      },
     },
     rating: { type: Number, default: 5.0 },
     reviewsCount: { type: Number, default: 0 },

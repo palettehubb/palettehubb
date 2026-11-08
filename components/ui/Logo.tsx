@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface LogoProps {
   variant?: 'light' | 'dark' | 'auto';
@@ -23,8 +24,7 @@ export default function Logo({
 
   const badgeSize =
     size === 'sm' ? 'w-8 h-8' : size === 'lg' ? 'w-12 h-12' : 'w-10 h-10';
-  const iconSize =
-    size === 'sm' ? 'w-4 h-4' : size === 'lg' ? 'w-6 h-6' : 'w-5 h-5';
+  const imgPixelSize = size === 'sm' ? 32 : size === 'lg' ? 48 : 40;
   const fontSize =
     size === 'sm'
       ? 'text-xs'
@@ -37,27 +37,18 @@ export default function Logo({
       href="/"
       className={`inline-flex items-center gap-2.5 font-bold tracking-tight select-none group ${className}`}
     >
-      {/* Official Palette Hubb Bag Emblem */}
+      {/* Official Palette Hubb Logo */}
       <div
-        className={`${badgeSize} rounded-xl bg-white text-black shadow-sm flex items-center justify-center p-1 border border-neutral-200/40 transition-transform duration-200 group-hover:scale-105`}
+        className={`${badgeSize} rounded-xl overflow-hidden shadow-sm flex items-center justify-center border border-neutral-200/40 transition-transform duration-200 group-hover:scale-105 shrink-0 bg-white`}
       >
-        <div className="w-full h-full rounded-lg bg-black flex items-center justify-center text-white relative">
-          <svg
-            className={`${iconSize}`}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
-            <path d="M3 6h18" />
-            <path d="M16 10a4 4 0 0 1-8 0" />
-            {/* Discount / Tag dot inside */}
-            <circle cx="12" cy="15" r="1.2" fill="currentColor" />
-          </svg>
-        </div>
+        <Image
+          src="/images/phlogo.jpeg"
+          alt="Palette Hubb"
+          width={imgPixelSize}
+          height={imgPixelSize}
+          priority
+          className="w-full h-full object-cover"
+        />
       </div>
 
       {showText && (
