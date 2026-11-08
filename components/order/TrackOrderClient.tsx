@@ -389,14 +389,18 @@ export default function TrackOrderClient() {
                     <span>-${order.discount.toFixed(2)}</span>
                   </div>
                 ) : null}
-                <div className="flex justify-between">
-                  <span>Shipping</span>
-                  <span>{order.shipping === 0 ? 'FREE' : `$${order.shipping.toFixed(2)}`}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Tax (5%)</span>
-                  <span>${order.tax.toFixed(2)}</span>
-                </div>
+                {order.shipping > 0 && (
+                  <div className="flex justify-between">
+                    <span>Shipping</span>
+                    <span>${order.shipping.toFixed(2)}</span>
+                  </div>
+                )}
+                {order.tax > 0 && (
+                  <div className="flex justify-between">
+                    <span>Tax</span>
+                    <span>${order.tax.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="border-t border-neutral-200 pt-2 flex justify-between font-bold text-neutral-900 text-sm">
                   <span>Total</span>
                   <span>${order.total.toFixed(2)} USD</span>

@@ -192,16 +192,20 @@ export default function OrderConfirmationClient({
                 <span>- ${order.discount.toFixed(2)}</span>
               </div>
             )}
-            <div className="flex justify-between">
-              <span>Shipping Fee</span>
-              <span className="font-semibold text-neutral-900">
-                {order.shipping === 0 ? 'FREE' : `$${order.shipping.toFixed(2)}`}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span>Tax (5%)</span>
-              <span>${order.tax.toFixed(2)}</span>
-            </div>
+            {order.shipping > 0 && (
+              <div className="flex justify-between">
+                <span>Shipping Fee</span>
+                <span className="font-semibold text-neutral-900">
+                  ${order.shipping.toFixed(2)}
+                </span>
+              </div>
+            )}
+            {order.tax > 0 && (
+              <div className="flex justify-between">
+                <span>Tax</span>
+                <span>${order.tax.toFixed(2)}</span>
+              </div>
+            )}
             <div className="border-t border-neutral-200 pt-2 flex justify-between text-sm font-black text-black">
               <span>Total Paid</span>
               <span>${order.total.toFixed(2)}</span>

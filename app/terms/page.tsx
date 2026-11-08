@@ -17,15 +17,29 @@ import {
   Mail,
 } from 'lucide-react';
 
+import { SITE_URL, getBreadcrumbSchema } from '@/lib/seo';
+
 export const metadata: Metadata = {
-  title: 'Terms & Conditions & Return Policy — Palette Hubb',
+  title: 'Terms of Service & Return Policy | PALETTE HUB Dubai',
   description:
-    'Review the official Terms of Service, 3-Day Return Policy, Mandatory Unboxing Video Proof requirements, and dropshipping fulfillment guidelines for Palette Hubb.',
+    'Review the official Terms of Service, 3-Day Return Policy, Mandatory Unboxing Video Proof requirements, and fashion dropshipping fulfillment guidelines for PALETTE HUB Dubai & UAE.',
+  alternates: {
+    canonical: `${SITE_URL}/terms`,
+  },
 };
 
 export default function TermsPage() {
+  const breadcrumbs = getBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Terms & Conditions', url: '/terms' },
+  ]);
+
   return (
     <div className="min-h-screen bg-white py-12 sm:py-16 text-neutral-900 select-none">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
+      />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Navigation Breadcrumb */}

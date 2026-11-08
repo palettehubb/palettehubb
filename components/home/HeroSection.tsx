@@ -86,7 +86,7 @@ export default function HeroSection() {
               <div className="inline-flex items-center gap-2 mb-4">
                 <span className="w-2 h-2 rounded-full bg-amber-300 animate-pulse" />
                 <span className="text-white/90 text-xs sm:text-sm font-medium tracking-widest uppercase">
-                  Palette Hubb Atelier 2026
+                  PALETTE HUB Atelier 2026
                 </span>
               </div>
 

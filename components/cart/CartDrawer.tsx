@@ -18,8 +18,6 @@ export default function CartDrawer() {
     removeCoupon,
     subtotal,
     discount,
-    shipping,
-    tax,
     total,
   } = useCart();
 
@@ -240,21 +238,7 @@ export default function CartDrawer() {
                   </div>
                 )}
 
-                <div className="flex justify-between">
-                  <span>Dropship Delivery</span>
-                  <span className="font-semibold text-neutral-900">
-                    {shipping === 0 ? (
-                      <span className="text-emerald-600 font-bold">FREE</span>
-                    ) : (
-                      `$${shipping.toFixed(2)}`
-                    )}
-                  </span>
-                </div>
 
-                <div className="flex justify-between">
-                  <span>Estimated Tax (5%)</span>
-                  <span>${tax.toFixed(2)}</span>
-                </div>
 
                 <div className="pt-2 border-t border-neutral-200 flex justify-between text-sm font-extrabold text-neutral-900">
                   <span>Final Total</span>
@@ -273,7 +257,7 @@ export default function CartDrawer() {
               </Link>
 
               <p className="text-center text-[11px] text-neutral-400">
-                Free standard delivery on orders above $50. Sourced from verified suppliers.
+                Direct supplier fulfillment with transparent pricing.
               </p>
             </div>
           )}

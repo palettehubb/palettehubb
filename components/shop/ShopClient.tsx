@@ -618,7 +618,7 @@ export default function ShopClient({
                         <Link href={`/products/${product.slug}`} prefetch={true} className="block w-full h-full">
                           <Image
                             src={product.images[0] || '/images/products/oversized-tshirt.png'}
-                            alt={product.name}
+                            alt={`${product.name} — PALETTE HUB Fashion Dubai`}
                             fill
                             className="object-cover transition-transform duration-500 group-hover:scale-105"
                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"

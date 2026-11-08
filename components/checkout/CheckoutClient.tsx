@@ -51,8 +51,6 @@ export default function CheckoutClient() {
     items,
     subtotal,
     discount,
-    shipping,
-    tax,
     total,
     appliedCoupon,
     clearCart,
@@ -180,10 +178,10 @@ export default function CheckoutClient() {
             <span className="text-neutral-900 font-semibold">Secure Checkout</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-neutral-900 tracking-tight">
-            Checkout & Fulfillment
+            Secure Checkout
           </h1>
           <p className="text-xs sm:text-sm text-neutral-500 mt-1">
-            Orders are processed immediately and routed to verified dropship suppliers.
+            Orders are processed immediately with direct dispatch.
           </p>
         </div>
 
@@ -412,21 +410,7 @@ export default function CheckoutClient() {
                   </div>
                 )}
 
-                <div className="flex justify-between">
-                  <span>Dropship Fulfillment</span>
-                  <span className="font-semibold text-neutral-900">
-                    {shipping === 0 ? (
-                      <span className="text-emerald-700 font-bold">FREE Delivery</span>
-                    ) : (
-                      `$${shipping.toFixed(2)} USD`
-                    )}
-                  </span>
-                </div>
 
-                <div className="flex justify-between">
-                  <span>Estimated Tax (5%)</span>
-                  <span>${tax.toFixed(2)}</span>
-                </div>
 
                 <div className="border-t border-neutral-200 pt-3 flex justify-between text-sm sm:text-base font-black text-neutral-900">
                   <span>Total Amount</span>
@@ -498,7 +482,7 @@ export default function CheckoutClient() {
                 </div>
                 <div className="flex items-center gap-2 text-neutral-700">
                   <Truck className="w-4 h-4 text-neutral-800" />
-                  <span>Automated dropship order routing to supplier</span>
+                  <span>Direct order routing & dispatch</span>
                 </div>
                 <div className="flex items-center gap-2 text-neutral-500">
                   <Lock className="w-4 h-4 text-neutral-400" />

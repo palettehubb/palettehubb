@@ -1,11 +1,13 @@
 import React, { cache } from 'react';
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import mongoose from 'mongoose';
 import ProductDetailClient from '@/components/products/ProductDetailClient';
 import connectToDatabase from '@/lib/db';
 import Product from '@/models/Product';
 import memoryStore from '@/lib/memoryStore';
 import { IProduct } from '@/types';
+import { SITE_URL, SITE_METADATA, getProductSchema, getBreadcrumbSchema } from '@/lib/seo';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -53,21 +55,52 @@ const getProductData = cache(async (slug: string) => {
   return { product, relatedProducts };
 });
 
-export async function generateMetadata({ params }: PageProps) {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const { product } = await getProductData(slug);
 
   if (!product) {
-    return { title: 'Product Not Found — Palette Hubb' };
+    return {
+      title: 'Product Not Found',
+      robots: { index: false, follow: false },
+    };
   }
 
+  const title = `${product.name} — Fashion Dropshipping Dubai | PALETTE HUB`;
+  const description =
+    product.description ||
+    `Order ${product.name} at PALETTE HUB. Fast, reliable fashion dropshipping across Dubai, Abu Dhabi, Sharjah, the UAE, and worldwide.`;
+  const canonicalUrl = `${SITE_URL}/products/${product.slug}`;
+  const imageUrl = product.images?.[0] || '/images/hero/hero-card-exact.png';
+  const fullImageUrl = imageUrl.startsWith('http') ? imageUrl : `${SITE_URL}${imageUrl}`;
+
   return {
-    title: `${product.name} — Palette Hubb`,
-    description: product.description || `Buy ${product.name} at Palette Hubb. Fast dropship delivery.`,
+    title,
+    description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
-      title: `${product.name} | Palette Hubb`,
-      description: product.description || `Buy ${product.name} at Palette Hubb. Fast dropship delivery.`,
-      images: [{ url: product.images[0] || '/images/hero/hero-card-exact.png' }],
+      title: `${product.name} | PALETTE HUB Dubai`,
+      description,
+      url: canonicalUrl,
+      siteName: SITE_METADATA.name,
+      images: [
+        {
+          url: fullImageUrl,
+          width: 800,
+          height: 800,
+          alt: `${product.name} - PALETTE HUB Fashion UAE`,
+        },
+      ],
+      locale: 'en_AE',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${product.name} | PALETTE HUB Dubai`,
+      description,
+      images: [fullImageUrl],
     },
   };
 }
@@ -82,10 +115,31 @@ export default async function ProductDetailPage({ params }: PageProps) {
     notFound();
   }
 
+  const productSchema = getProductSchema(product);
+  const breadcrumbsSchema = getBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Shop', url: '/shop' },
+    {
+      name: product.category || 'Fashion',
+      url: `/shop?category=${encodeURIComponent(product.category || 'all')}`,
+    },
+    { name: product.name, url: `/products/${product.slug}` },
+  ]);
+
   return (
-    <ProductDetailClient
-      product={product}
-      relatedProducts={relatedProducts}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsSchema) }}
+      />
+      <ProductDetailClient
+        product={product}
+        relatedProducts={relatedProducts}
+      />
+    </>
   );
 }

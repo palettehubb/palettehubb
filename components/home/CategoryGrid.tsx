@@ -63,7 +63,7 @@ export default function CategoryGrid({ initialCategories }: { initialCategories?
                     <div className="relative w-full h-full flex items-center justify-center">
                       <Image
                         src={cat.image}
-                        alt={cat.name}
+                        alt={`${cat.name} — PALETTE HUB Fashion UAE`}
                         fill
                         sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 16vw"
                         className="object-contain p-1 transition-transform duration-300 group-hover:scale-110 drop-shadow-xs"

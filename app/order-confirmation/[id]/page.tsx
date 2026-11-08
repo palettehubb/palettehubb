@@ -12,8 +12,12 @@ interface PageProps {
 }
 
 export const metadata = {
-  title: 'Order Confirmed — Palette Hubb',
+  title: 'Order Confirmed — PALETTE HUB',
   description: 'Your dropshipping order has been confirmed.',
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export const instant = false;

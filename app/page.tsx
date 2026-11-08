@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import HeroSection from '@/components/home/HeroSection';
 import CategoryGrid from '@/components/home/CategoryGrid';
 import FeaturedProducts from '@/components/home/FeaturedProducts';
@@ -8,6 +9,40 @@ import Product from '@/models/Product';
 import Category from '@/models/Category';
 import memoryStore from '@/lib/memoryStore';
 import { IProduct, ICategory } from '@/types';
+import { SITE_URL, getBreadcrumbSchema } from '@/lib/seo';
+
+export const metadata: Metadata = {
+  title: 'PALETTE HUB | Official Website',
+  description:
+    'Welcome to PALETTE HUB – Explore our products, discover our collections and shop with us. Visit our official website.',
+  alternates: {
+    canonical: SITE_URL,
+  },
+  openGraph: {
+    title: 'PALETTE HUB | Official Website',
+    description:
+      'Welcome to PALETTE HUB – Explore our products, discover our collections and shop with us. Visit our official website.',
+    url: SITE_URL,
+    siteName: 'PALETTE HUB',
+    images: [
+      {
+        url: '/images/hero/hero-card-exact.png',
+        width: 1200,
+        height: 630,
+        alt: 'PALETTE HUB Official Website',
+      },
+    ],
+    locale: 'en_AE',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'PALETTE HUB | Official Website',
+    description:
+      'Welcome to PALETTE HUB – Explore our products, discover our collections and shop with us. Visit our official website.',
+    images: ['/images/hero/hero-card-exact.png'],
+  },
+};
 
 // Pre-rendered statically with cacheComponents: eliminates loading spinner buffer for visitors
 
@@ -60,8 +95,15 @@ async function getHomePageData(): Promise<{
 export default async function HomePage() {
   const { featuredProducts, categories } = await getHomePageData();
 
+  const homeBreadcrumb = getBreadcrumbSchema([{ name: 'Home', url: '/' }]);
+
   return (
     <div className="w-full">
+      {/* Search Engine Breadcrumb Schema (Invisible) */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(homeBreadcrumb) }}
+      />
       {/* 1. Hero Section - Renders instantly */}
       <HeroSection />
 

@@ -43,7 +43,7 @@ export default function Logo({
       >
         <Image
           src="/images/phlogo.jpeg"
-          alt="Palette Hubb"
+          alt="PALETTE HUB — Fashion Dropshipping Dubai UAE"
           width={imgPixelSize}
           height={imgPixelSize}
           priority

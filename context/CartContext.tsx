@@ -245,10 +245,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     discount = Math.min(discount, subtotal);
   }
 
-  // Free worldwide shipping for orders over $150, else $12 flat
-  const shipping = subtotal > 150 || subtotal === 0 ? 0 : 12;
-  const tax = (subtotal - discount) * 0.05; // 5% GST/VAT
-  const total = Math.max(0, subtotal - discount + shipping + tax);
+  // No extra shipping or tax charges — strictly product price
+  const shipping = 0;
+  const tax = 0;
+  const total = Math.max(0, subtotal - discount);
   const totalItemsCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
   return (

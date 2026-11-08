@@ -150,6 +150,7 @@ export default function Navbar() {
             <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 pointer-events-none" />
             <input
               type="text"
+              aria-label="Search fashion collections"
               placeholder="Search collections..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -163,6 +164,7 @@ export default function Navbar() {
             <Link
               href="/shop?wishlist=true"
               prefetch={true}
+              aria-label="Saved items wishlist"
               className="relative p-2 rounded-full hover:bg-[#ece8de] text-neutral-800 transition-colors"
               title="Saved items"
             >
@@ -177,8 +179,8 @@ export default function Navbar() {
             {/* Shopping Bag Button (triggering slide-over) */}
             <button
               onClick={() => setIsOpen(true)}
+              aria-label="Open Shopping Bag"
               className="relative p-2 rounded-full hover:bg-[#ece8de] text-neutral-800 transition-colors cursor-pointer"
-              aria-label="View shopping bag"
             >
               <ShoppingBag className="w-5 h-5" />
               {totalItemsCount > 0 && (
@@ -208,6 +210,7 @@ export default function Navbar() {
             <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-3" />
             <input
               type="text"
+              aria-label="Search collections"
               placeholder="Search collections..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -297,10 +300,28 @@ export default function Navbar() {
             })}
 
             <Link
-              href="/track-order"
+              href="/about"
               prefetch={true}
               onClick={() => setMobileMenuOpen(false)}
               className="py-2.5 px-3 rounded-xl hover:bg-[#ece8de] transition-colors border-t border-neutral-200/60"
+            >
+              About Us
+            </Link>
+
+            <Link
+              href="/contact"
+              prefetch={true}
+              onClick={() => setMobileMenuOpen(false)}
+              className="py-2.5 px-3 rounded-xl hover:bg-[#ece8de] transition-colors"
+            >
+              Contact Us
+            </Link>
+
+            <Link
+              href="/track-order"
+              prefetch={true}
+              onClick={() => setMobileMenuOpen(false)}
+              className="py-2.5 px-3 rounded-xl hover:bg-[#ece8de] transition-colors"
             >
               Track Order
             </Link>

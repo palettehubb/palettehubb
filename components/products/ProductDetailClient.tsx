@@ -194,7 +194,7 @@ export default function ProductDetailClient({
                   >
                     <Image
                       src={img}
-                      alt={`View ${idx + 1}`}
+                      alt={`${product.name} view ${idx + 1} - PALETTE HUB`}
                       fill
                       className="object-cover"
                       sizes="(max-width: 640px) 56px, 80px"
@@ -212,7 +212,7 @@ export default function ProductDetailClient({
             >
               <Image
                 src={activeImage}
-                alt={product.name}
+                alt={`${product.name} — Fashion Dropshipping Dubai PALETTE HUB`}
                 fill
                 priority
                 className="object-contain p-2 sm:p-4 transition-all duration-300 group-hover:scale-105"
@@ -518,7 +518,7 @@ export default function ProductDetailClient({
                   <div className="relative aspect-square rounded-xl overflow-hidden bg-neutral-100 mb-2">
                     <Image
                       src={(rel.images && rel.images[0]) || '/images/products/oversized-tshirt.png'}
-                      alt={rel.name}
+                      alt={`${rel.name} — PALETTE HUB Fashion Dubai`}
                       fill
                       className="object-cover transition-transform duration-300 group-hover:scale-105"
                       sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 260px"

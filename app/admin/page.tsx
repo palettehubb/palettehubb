@@ -7,8 +7,12 @@ import Admin from '@/models/Admin';
 import AdminDashboardClient from '@/components/admin/AdminDashboardClient';
 
 export const metadata = {
-  title: 'Admin Operations — Palette Hubb',
+  title: 'Admin Operations — PALETTE HUB',
   description: 'Manage dropship fulfillment, inventory, and supplier operations.',
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export const instant = false;

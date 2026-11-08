@@ -163,9 +163,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const shipping = serverSubtotal >= 50 ? 0 : 5.99; // Free shipping over $50
-    const tax = Math.round((serverSubtotal - discount) * 0.05 * 100) / 100; // 5% tax
-    const finalTotal = Math.round((serverSubtotal - discount + shipping + tax) * 100) / 100;
+    const shipping = 0;
+    const tax = 0;
+    const finalTotal = Math.round((serverSubtotal - discount) * 100) / 100;
 
     const orderNumber = `PH-${Math.floor(10000 + Math.random() * 90000)}`;
 

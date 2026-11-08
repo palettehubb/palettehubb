@@ -35,7 +35,7 @@ export default function TrustBenefits() {
         <div className="relative w-full rounded-2xl sm:rounded-3xl lg:rounded-[2rem] overflow-hidden bg-[#faf6f3] shadow-md border border-[#ede5db]/80 group">
           <Image
             src="/images/why-choose-us/why-choose-us-banner-2x.jpg"
-            alt="Why Choose Us - More Than Just Fashion - Palette Hubb"
+            alt="Why Choose PALETTE HUB — Premier Fashion Dropshipping Dubai UAE"
             width={2048}
             height={818}
             className="w-full h-auto object-cover transform scale-[1.002] transition-transform duration-700 group-hover:scale-[1.008]"

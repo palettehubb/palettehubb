@@ -18,15 +18,29 @@ import {
   Sparkles,
 } from 'lucide-react';
 
+import { SITE_URL, getBreadcrumbSchema } from '@/lib/seo';
+
 export const metadata: Metadata = {
-  title: 'Privacy Policy — Palette Hubb',
+  title: 'Privacy Policy & Data Security | PALETTE HUB Dubai',
   description:
-    'Learn how Palette Hubb collects, protects, and handles your personal information, including PayPal-secured payment processing and automated dropship order fulfillment.',
+    'Learn how PALETTE HUB handles and protects customer information, secure payment processing, and order routing across Dubai, the UAE, and worldwide.',
+  alternates: {
+    canonical: `${SITE_URL}/privacy`,
+  },
 };
 
 export default function PrivacyPolicyPage() {
+  const breadcrumbs = getBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Privacy Policy', url: '/privacy' },
+  ]);
+
   return (
     <div className="min-h-screen bg-white py-12 sm:py-16 text-neutral-900 select-none">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
+      />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Navigation Breadcrumb */}

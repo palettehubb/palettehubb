@@ -42,9 +42,9 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const shipping = serverSubtotal >= 50 ? 0 : 5.99;
-      const tax = Math.round((serverSubtotal - discount) * 0.05 * 100) / 100;
-      totalINR = Math.round((serverSubtotal - discount + shipping + tax) * 100) / 100;
+      const shipping = 0;
+      const tax = 0;
+      totalINR = Math.round((serverSubtotal - discount) * 100) / 100;
     } else if (clientTotal && Number(clientTotal) > 0) {
       totalINR = Number(clientTotal);
     } else {
