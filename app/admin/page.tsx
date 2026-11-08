@@ -10,6 +10,9 @@ export const metadata = {
   description: 'Manage dropship fulfillment, inventory, and supplier operations.',
 };
 
+export const instant = false;
+export const dynamic = 'force-dynamic';
+
 export default async function AdminPage() {
   const session = await getAdminSession();
   if (!session) {
