@@ -8,6 +8,7 @@ import Supplier from '@/models/Supplier';
 import { IOrderItem } from '@/types';
 import { notifyNewOrder, notifyProductUpdated } from '@/lib/realtime';
 import memoryStore from '@/lib/memoryStore';
+import { sendOrderEmails } from '@/lib/email';
 
 export async function POST(req: NextRequest) {
   try {
@@ -192,6 +193,11 @@ export async function POST(req: NextRequest) {
           notifyProductUpdated(prod);
         }
       }
+
+      // Asynchronously trigger customer, supplier, and admin email dispatch
+      sendOrderEmails(plainOrder).catch((err) => {
+        console.error('Async order email dispatch error:', err);
+      });
     } catch (e) {
       console.warn('Realtime notify warning:', e);
     }

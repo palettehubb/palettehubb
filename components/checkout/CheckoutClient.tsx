@@ -6,21 +6,35 @@ import Link from 'next/link';
 import Image from 'next/image';
 import {
   ShieldCheck,
-  CreditCard,
   Truck,
-  ArrowRight,
   Lock,
   Tag,
   AlertCircle,
   CheckCircle2,
-  QrCode,
-  Smartphone,
+  Sparkles,
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { IShippingAddress, IOrder } from '@/types';
 import PayPalButton from '@/components/checkout/PayPalButton';
-import SecureQRCodePayment from '@/components/checkout/SecureQRCodePayment';
-import { convertInrToUsd } from '@/lib/paypal';
+
+const POPULAR_COUNTRIES = [
+  'United States',
+  'United Kingdom',
+  'Canada',
+  'Australia',
+  'Germany',
+  'France',
+  'India',
+  'United Arab Emirates',
+  'Saudi Arabia',
+  'Singapore',
+  'Japan',
+  'Netherlands',
+  'Spain',
+  'Italy',
+  'Sweden',
+  'New Zealand',
+];
 
 export default function CheckoutClient() {
   const router = useRouter();
@@ -36,126 +50,24 @@ export default function CheckoutClient() {
   } = useCart();
 
   const [address, setAddress] = useState<IShippingAddress>({
-    fullName: 'Faiz Khan',
-    email: 'faizk@example.com',
-    phone: '+91 98765 43210',
-    street: '104, Royal Crest, Linking Road',
-    city: 'Mumbai',
-    state: 'Maharashtra',
-    pincode: '400052',
-    country: 'India',
+    fullName: '',
+    email: '',
+    phone: '',
+    street: '',
+    city: '',
+    state: '',
+    pincode: '',
+    country: 'United States',
   });
 
-  const paymentMethod = 'paypal';
-  const [paymentMode, setPaymentMode] = useState<'paypal_button' | 'scan_qr'>('paypal_button');
   const [agreedToReturnPolicy, setAgreedToReturnPolicy] = useState(false);
-  const [processing, setProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [completedOrder, setCompletedOrder] = useState<IOrder | null>(null);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setAddress((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handlePlaceOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMessage(null);
-
-    if (items.length === 0) {
-      setErrorMessage('Your cart is empty. Add items to checkout.');
-      return;
-    }
-
-    if (!address.fullName || !address.email || !address.phone || !address.street || !address.city || !address.pincode) {
-      setErrorMessage('Please fill in all required shipping address fields.');
-      return;
-    }
-
-    if (!agreedToReturnPolicy) {
-      setErrorMessage('Please agree to the 3-Day Return Policy and mandatory unboxing video requirement to place your order.');
-      return;
-    }
-
-    setProcessing(true);
-
-    try {
-      // Step 1: Request Payment Order from server
-      const paymentOrderRes = await fetch('/api/payments/create-razorpay-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: total,
-          currency: 'INR',
-          receipt: `rcpt_${Date.now()}`,
-        }),
-      });
-
-      const paymentOrderData = await paymentOrderRes.json();
-      if (!paymentOrderData.success) {
-        throw new Error(paymentOrderData.error || 'Payment gateway initialization failed');
-      }
-
-      // Step 2: Handle Razorpay modal (if live keys) or Sandbox instant verification
-      let verifiedPaymentId = `pay_sim_${Date.now()}`;
-
-      if (paymentOrderData.isLive && typeof window !== 'undefined' && (window as unknown as { Razorpay: unknown }).Razorpay) {
-        // Live Razorpay popup flow
-        throw new Error('Live Razorpay credentials configured, please test in sandbox mode or fill secrets.');
-      } else {
-        // Step 2b: Server-side signature verification call
-        const verifyRes = await fetch('/api/payments/verify-signature', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            razorpay_order_id: paymentOrderData.orderId,
-            razorpay_payment_id: verifiedPaymentId,
-            razorpay_signature: 'sandbox_verified_signature',
-          }),
-        });
-        const verifyData = await verifyRes.json();
-        if (!verifyData.success) {
-          throw new Error('Payment signature verification failed.');
-        }
-        verifiedPaymentId = verifyData.paymentId;
-      }
-
-      // Step 3: Create Verified Order on server (with server-side re-pricing)
-      const orderRes = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customer: address,
-          items: items.map((i) => ({
-            productId: i.productId,
-            name: i.name,
-            slug: i.slug,
-            image: i.image,
-            price: i.price,
-            quantity: i.quantity,
-            size: i.size,
-            color: i.color,
-          })),
-          couponCode: appliedCoupon?.code,
-          paymentMethod,
-          razorpayOrderId: paymentOrderData.orderId,
-          razorpayPaymentId: verifiedPaymentId,
-        }),
-      });
-
-      const orderData = await orderRes.json();
-
-      if (!orderData.success) {
-        throw new Error(orderData.error || 'Order creation failed.');
-      }
-
-      handleOrderSuccess(orderData.order);
-    } catch (err: unknown) {
-      console.error('Checkout error:', err);
-      setErrorMessage(
-        err instanceof Error ? err.message : 'An error occurred during checkout. Please try again.'
-      );
-      setProcessing(false);
-    }
   };
 
   const handleOrderSuccess = (order: IOrder) => {
@@ -172,14 +84,21 @@ export default function CheckoutClient() {
         ...existing.filter((o: any) => o.orderNumber !== order.orderNumber),
       ].slice(0, 10);
       localStorage.setItem('palette_device_orders', JSON.stringify(updatedDeviceOrders));
-    } catch (e) {
-      // storage error
+    } catch {
+      // ignore storage failure
     }
+
+    setCompletedOrder(order);
+    setShowCelebration(true);
     clearCart();
-    router.push(`/order-confirmation/${order.orderNumber}`);
+
+    // Smooth transition to track order page after 2.2 seconds
+    setTimeout(() => {
+      router.push(`/track-order?orderNumber=${encodeURIComponent(order.orderNumber)}`);
+    }, 2200);
   };
 
-  if (items.length === 0) {
+  if (items.length === 0 && !showCelebration) {
     return (
       <div className="bg-[#f7f5ee] min-h-screen py-20 flex items-center justify-center">
         <div className="max-w-md w-full mx-4 bg-white p-8 rounded-3xl shadow-sm text-center border border-neutral-200">
@@ -189,7 +108,7 @@ export default function CheckoutClient() {
           </p>
           <Link
             href="/shop"
-            className="inline-block bg-black text-white text-xs font-semibold px-6 py-3 rounded-full hover:bg-neutral-800"
+            className="inline-block bg-black text-white text-xs font-semibold px-6 py-3 rounded-full hover:bg-neutral-800 transition-colors"
           >
             Explore Catalog
           </Link>
@@ -199,9 +118,47 @@ export default function CheckoutClient() {
   }
 
   return (
-    <div className="bg-[#f7f5ee] min-h-screen py-10 sm:py-14 select-none">
+    <div className="bg-[#f7f5ee] min-h-screen py-10 sm:py-14 select-none relative">
+      {/* Celebratory Success Modal */}
+      {showCelebration && completedOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl p-8 sm:p-10 max-w-md w-full shadow-2xl text-center border border-emerald-100 animate-in zoom-in-95 duration-300">
+            <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-5 shadow-inner">
+              <CheckCircle2 className="w-12 h-12 stroke-[2.5] animate-bounce" />
+            </div>
+
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold mb-3">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Payment Completed</span>
+            </div>
+
+            <h2 className="text-2xl font-black text-neutral-900 tracking-tight mb-2">
+              Payment Successful!
+            </h2>
+            <p className="text-xs sm:text-sm text-neutral-600 mb-4">
+              Your order <span className="font-mono font-bold text-black">#{completedOrder.orderNumber}</span> has been paid & verified via PayPal. Confirmation emails have been dispatched.
+            </p>
+
+            <div className="bg-neutral-50 rounded-2xl p-4 border border-neutral-200/80 mb-6 text-left">
+              <div className="flex justify-between text-xs text-neutral-500 mb-1">
+                <span>Amount Paid</span>
+                <span className="font-bold text-neutral-900">${completedOrder.total.toFixed(2)} USD</span>
+              </div>
+              <div className="flex justify-between text-xs text-neutral-500">
+                <span>Customer</span>
+                <span className="font-semibold text-neutral-900">{completedOrder.customer.fullName}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center gap-2 text-xs font-semibold text-neutral-500">
+              <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+              <span>Redirecting to Order Tracking...</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-2 text-xs text-neutral-500 mb-2">
@@ -231,15 +188,12 @@ export default function CheckoutClient() {
           </div>
         )}
 
-        <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left Column: Customer & Shipping Details */}
           <div className="lg:col-span-7 space-y-6">
-            
-            {/* Step 1: Customer & Address Info */}
             <div className="bg-white p-6 sm:p-8 rounded-3xl border border-neutral-200/80 shadow-sm space-y-4">
               <h2 className="text-base font-bold text-neutral-900 pb-3 border-b border-neutral-100 flex items-center justify-between">
-                <span>1. Shipping & Customer Details</span>
+                <span>Shipping & Customer Details</span>
                 <span className="text-xs font-normal text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
                   Step 1 of 2
                 </span>
@@ -254,6 +208,7 @@ export default function CheckoutClient() {
                     type="text"
                     name="fullName"
                     required
+                    placeholder="Enter recipient's full name"
                     value={address.fullName}
                     onChange={handleInputChange}
                     className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 focus:outline-none focus:border-black"
@@ -267,6 +222,7 @@ export default function CheckoutClient() {
                     type="tel"
                     name="phone"
                     required
+                    placeholder="e.g. +1 555-0199 or +91 9876543210"
                     value={address.phone}
                     onChange={handleInputChange}
                     className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 focus:outline-none focus:border-black"
@@ -282,27 +238,63 @@ export default function CheckoutClient() {
                   type="email"
                   name="email"
                   required
+                  placeholder="recipient@example.com"
                   value={address.email}
                   onChange={handleInputChange}
                   className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 focus:outline-none focus:border-black"
                 />
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-neutral-700 uppercase mb-1.5">
+                    Country / Region *
+                  </label>
+                  <select
+                    name="country"
+                    value={address.country}
+                    onChange={handleInputChange}
+                    className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 focus:outline-none focus:border-black cursor-pointer"
+                  >
+                    {POPULAR_COUNTRIES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-neutral-700 uppercase mb-1.5">
+                    Postal / ZIP Code *
+                  </label>
+                  <input
+                    type="text"
+                    name="pincode"
+                    required
+                    placeholder="e.g. 10001 or 560001"
+                    value={address.pincode}
+                    onChange={handleInputChange}
+                    className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 focus:outline-none focus:border-black"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-neutral-700 uppercase mb-1.5">
-                  Street Address / Flat / Landmark *
+                  Street Address & Apartment / Suite *
                 </label>
                 <input
                   type="text"
                   name="street"
                   required
+                  placeholder="e.g. 742 Evergreen Terrace, Apt 4B"
                   value={address.street}
                   onChange={handleInputChange}
                   className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 focus:outline-none focus:border-black"
                 />
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-neutral-700 uppercase mb-1.5">
                     City *
@@ -311,6 +303,7 @@ export default function CheckoutClient() {
                     type="text"
                     name="city"
                     required
+                    placeholder="e.g. New York or London"
                     value={address.city}
                     onChange={handleInputChange}
                     className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 focus:outline-none focus:border-black"
@@ -318,122 +311,47 @@ export default function CheckoutClient() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-neutral-700 uppercase mb-1.5">
-                    State *
+                    State / Province / Region *
                   </label>
                   <input
                     type="text"
                     name="state"
                     required
+                    placeholder="e.g. NY, California, or Ontario"
                     value={address.state}
                     onChange={handleInputChange}
                     className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 focus:outline-none focus:border-black"
                   />
                 </div>
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="block text-xs font-bold text-neutral-700 uppercase mb-1.5">
-                    PIN Code *
-                  </label>
-                  <input
-                    type="text"
-                    name="pincode"
-                    required
-                    value={address.pincode}
-                    onChange={handleInputChange}
-                    className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 focus:outline-none focus:border-black"
-                  />
-                </div>
               </div>
             </div>
 
-            {/* Step 2: Payment Gateway Selection */}
+            {/* Payment Section - Clean PayPal Information */}
             <div className="bg-white p-6 sm:p-8 rounded-3xl border border-neutral-200/80 shadow-sm space-y-4">
               <h2 className="text-base font-bold text-neutral-900 pb-3 border-b border-neutral-100 flex items-center justify-between">
-                <span>2. Payment Method</span>
-                <span className="text-xs font-normal text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                  Step 2 of 2
+                <span>Payment Method</span>
+                <span className="text-xs font-black tracking-tight text-[#003087]">
+                  PayPal Express & Cards
                 </span>
               </h2>
 
-              <div className="space-y-3">
-                {/* Mode 1: PayPal Smart Buttons */}
-                <label
-                  onClick={() => setPaymentMode('paypal_button')}
-                  className={`flex items-start gap-3.5 p-4 rounded-2xl border-2 transition-all cursor-pointer ${
-                    paymentMode === 'paypal_button'
-                      ? 'border-[#0070ba] bg-sky-50/60 shadow-sm'
-                      : 'border-neutral-200 hover:border-neutral-300'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="paymentMode"
-                    value="paypal_button"
-                    checked={paymentMode === 'paypal_button'}
-                    onChange={() => setPaymentMode('paypal_button')}
-                    className="mt-1 accent-[#0070ba]"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <span className="text-xs sm:text-sm font-bold text-neutral-900 flex items-center gap-2">
-                        <span>PayPal Express & Cards</span>
-                        <span className="text-[10px] bg-[#0070ba] text-white font-bold px-2 py-0.5 rounded">
-                          DIRECT BUTTONS
-                        </span>
-                      </span>
-                      <span className="text-xs font-black tracking-tight text-[#003087]">
-                        PayPal
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-neutral-600 mt-1">
-                      Pay directly on this screen using PayPal account, Visa, MasterCard, Amex, or Discover.
-                    </p>
-                    <div className="mt-2 flex items-center gap-2 text-[10px] text-neutral-500 font-semibold">
-                      <span className="bg-white px-2 py-0.5 rounded border border-neutral-200">Visa</span>
-                      <span className="bg-white px-2 py-0.5 rounded border border-neutral-200">MasterCard</span>
-                      <span className="bg-white px-2 py-0.5 rounded border border-neutral-200">Amex</span>
-                    </div>
+              <div className="p-4 rounded-2xl bg-sky-50/70 border border-sky-200/80">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <span className="text-xs font-bold text-neutral-900">
+                    Official PayPal Live Gateway
+                  </span>
+                  <div className="flex items-center gap-1.5 text-[10px] text-neutral-600 font-semibold">
+                    <span className="bg-white px-2 py-0.5 rounded border border-neutral-200">Visa</span>
+                    <span className="bg-white px-2 py-0.5 rounded border border-neutral-200">MasterCard</span>
+                    <span className="bg-white px-2 py-0.5 rounded border border-neutral-200">Amex</span>
+                    <span className="bg-white px-2 py-0.5 rounded border border-neutral-200">Discover</span>
                   </div>
-                </label>
-
-                {/* Mode 2: Secure Scan to Pay QR Code */}
-                <label
-                  onClick={() => setPaymentMode('scan_qr')}
-                  className={`flex items-start gap-3.5 p-4 rounded-2xl border-2 transition-all cursor-pointer ${
-                    paymentMode === 'scan_qr'
-                      ? 'border-[#0070ba] bg-sky-50/60 shadow-sm'
-                      : 'border-neutral-200 hover:border-neutral-300'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="paymentMode"
-                    value="scan_qr"
-                    checked={paymentMode === 'scan_qr'}
-                    onChange={() => setPaymentMode('scan_qr')}
-                    className="mt-1 accent-[#0070ba]"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <span className="text-xs sm:text-sm font-bold text-neutral-900 flex items-center gap-2">
-                        <span>Scan to Pay (Secure QR Code)</span>
-                        <span className="text-[10px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded">
-                          CAMERA SCAN
-                        </span>
-                      </span>
-                      <QrCode className="w-4 h-4 text-[#0070ba]" />
-                    </div>
-                    <p className="text-[11px] text-neutral-600 mt-1">
-                      Generates a dynamic 256-bit encrypted QR code. Scan with your smartphone camera to pay securely on mobile.
-                    </p>
-                    <div className="mt-2 flex items-center gap-2 text-[10px] text-emerald-700 font-semibold">
-                      <Smartphone className="w-3.5 h-3.5" />
-                      <span>Supports iPhone, Android, & Mobile Banking Apps</span>
-                    </div>
-                  </div>
-                </label>
+                </div>
+                <p className="text-[11px] text-neutral-600 mt-2 leading-relaxed">
+                  Pay securely with your PayPal account or direct credit/debit card. Your payment is encrypted and verified before order creation.
+                </p>
               </div>
             </div>
-
           </div>
 
           {/* Right Column: Order Summary & Placement */}
@@ -505,17 +423,19 @@ export default function CheckoutClient() {
 
                 <div className="border-t border-neutral-200 pt-3 flex justify-between text-base font-extrabold text-neutral-900">
                   <span>Total Amount</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>${total.toFixed(2)} USD</span>
                 </div>
               </div>
 
               {/* Mandatory Policy Agreement Checkbox */}
               <div className="pt-1">
-                <label className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer select-none transition-colors ${
-                  !agreedToReturnPolicy && errorMessage?.includes('Return Policy')
-                    ? 'bg-red-50/60 border-red-300'
-                    : 'bg-neutral-50 hover:bg-neutral-100/70 border-neutral-200/80'
-                }`}>
+                <label
+                  className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer select-none transition-colors ${
+                    !agreedToReturnPolicy && errorMessage?.includes('Return Policy')
+                      ? 'bg-red-50/60 border-red-300'
+                      : 'bg-neutral-50 hover:bg-neutral-100/70 border-neutral-200/80'
+                  }`}
+                >
                   <input
                     type="checkbox"
                     checked={agreedToReturnPolicy}
@@ -542,57 +462,32 @@ export default function CheckoutClient() {
                 </label>
               </div>
 
-              {/* Payment Action: PayPal Smart Buttons OR Secure Scan to Pay QR Code */}
+              {/* Payment Action: PayPal Smart Buttons */}
               <div className="pt-1">
-                {paymentMode === 'paypal_button' ? (
-                  <>
-                    <PayPalButton
-                      customer={address}
-                      items={items}
-                      couponCode={appliedCoupon?.code}
-                      totalINR={total}
-                      disabled={!agreedToReturnPolicy}
-                      onSuccess={(confirmedOrder) => {
-                        handleOrderSuccess(confirmedOrder);
-                      }}
-                      onError={(err) => {
-                        setErrorMessage(err);
-                      }}
-                    />
-                    {!agreedToReturnPolicy && (
-                      <p className="text-[11px] text-amber-700 text-center mt-2">
-                        Please check the Return Policy agreement above to activate PayPal checkout.
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <SecureQRCodePayment
-                      customer={address}
-                      items={items}
-                      couponCode={appliedCoupon?.code}
-                      totalUSD={total}
-                      disabled={!agreedToReturnPolicy}
-                      onSuccess={(confirmedOrder) => {
-                        handleOrderSuccess(confirmedOrder);
-                      }}
-                      onError={(err) => {
-                        setErrorMessage(err);
-                      }}
-                    />
-                    {!agreedToReturnPolicy && (
-                      <p className="text-[11px] text-amber-700 text-center mt-2">
-                        Please check the Return Policy agreement above to activate QR code payment.
-                      </p>
-                    )}
-                  </>
+                <PayPalButton
+                  customer={address}
+                  items={items}
+                  couponCode={appliedCoupon?.code}
+                  totalINR={total}
+                  disabled={!agreedToReturnPolicy}
+                  onSuccess={(confirmedOrder) => {
+                    handleOrderSuccess(confirmedOrder);
+                  }}
+                  onError={(err) => {
+                    setErrorMessage(err);
+                  }}
+                />
+                {!agreedToReturnPolicy && (
+                  <p className="text-[11px] text-amber-700 text-center mt-2">
+                    Please check the Return Policy agreement above to activate PayPal checkout.
+                  </p>
                 )}
               </div>
 
               <div className="space-y-2 pt-2 border-t border-neutral-100 text-[11px] text-neutral-500">
                 <div className="flex items-center gap-2 text-neutral-700">
                   <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>Server-validated pricing & Stripe secure checkout</span>
+                  <span>Verified PayPal live integration • SSL Protected</span>
                 </div>
                 <div className="flex items-center gap-2 text-neutral-700">
                   <Truck className="w-4 h-4 text-neutral-800" />
@@ -600,15 +495,17 @@ export default function CheckoutClient() {
                 </div>
                 <div className="flex items-center gap-2 text-neutral-500">
                   <Lock className="w-4 h-4 text-neutral-400" />
-                  <span>256-bit SSL encrypted • View our <Link href="/privacy" target="_blank" className="underline hover:text-neutral-800">Privacy Policy</Link></span>
+                  <span>
+                    View our{' '}
+                    <Link href="/privacy" target="_blank" className="underline hover:text-neutral-800">
+                      Privacy Policy
+                    </Link>
+                  </span>
                 </div>
               </div>
-
             </div>
           </div>
-
-        </form>
-
+        </div>
       </div>
     </div>
   );

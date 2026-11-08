@@ -87,6 +87,79 @@ export async function POST(req: NextRequest) {
   }
 }
 
+export async function PUT(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { id, name, contactName, email, phone, website, leadTimeDays, notes, isActive, password } = body;
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: 'Supplier ID is required' }, { status: 400 });
+    }
+
+    const db = await connectToDatabase();
+    if (!db) {
+      return NextResponse.json(
+        { success: false, error: 'Database service is currently unreachable' },
+        { status: 503 }
+      );
+    }
+
+    const supplier = await Supplier.findById(id);
+    if (!supplier) {
+      return NextResponse.json({ success: false, error: 'Supplier not found' }, { status: 404 });
+    }
+
+    if (name) supplier.name = name.trim();
+    if (contactName) supplier.contactName = contactName.trim();
+    if (email) {
+      const cleanEmail = email.trim().toLowerCase();
+      // Check if email taken by another supplier
+      const existing = await Supplier.findOne({ email: cleanEmail, _id: { $ne: id } });
+      if (existing) {
+        return NextResponse.json(
+          { success: false, error: 'Email is already taken by another supplier' },
+          { status: 400 }
+        );
+      }
+      supplier.email = cleanEmail;
+    }
+    if (phone) supplier.phone = phone.trim();
+    if (website !== undefined) supplier.website = website.trim();
+    if (leadTimeDays !== undefined) supplier.leadTimeDays = Number(leadTimeDays) || 3;
+    if (notes !== undefined) supplier.notes = notes.trim();
+    if (isActive !== undefined) supplier.isActive = Boolean(isActive);
+
+    // Update password if provided
+    if (password && password.trim().length > 0) {
+      const plain = password.trim();
+      if (plain.length < 6) {
+        return NextResponse.json(
+          { success: false, error: 'New password must be at least 6 characters' },
+          { status: 400 }
+        );
+      }
+      supplier.passwordHash = await hashPassword(plain);
+    }
+
+    await supplier.save();
+
+    const supplierData = supplier.toObject();
+    delete supplierData.passwordHash;
+
+    return NextResponse.json({
+      success: true,
+      message: 'Supplier updated successfully',
+      supplier: supplierData,
+    });
+  } catch (error: unknown) {
+    console.error('Error updating supplier:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to update supplier' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);

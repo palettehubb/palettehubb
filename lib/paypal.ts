@@ -16,7 +16,7 @@ let tokenExpiresAt = 0;
  * Returns the PayPal API base URL depending on the configured mode.
  */
 export function getPayPalBaseUrl(): string {
-  const mode = process.env.PAYPAL_MODE || 'sandbox';
+  const mode = process.env.PAYPAL_MODE || 'live';
   return mode === 'live'
     ? 'https://api-m.paypal.com'
     : 'https://api-m.sandbox.paypal.com';
@@ -29,10 +29,10 @@ export function getPayPalBaseUrl(): string {
 export async function getPayPalAccessToken(): Promise<string> {
   const clientId =
     process.env.PAYPAL_CLIENT_ID ||
-    'Af_M98Cn4XAf4ZlM0AEZEWqOUurcjhIWnS9CKfxv81gAddrLiRhZRQj8OQrVxRTd0euOdpgQjjl7SFYJ';
+    'BAA29Z8SGTxCZCNtjhPHqWvhu2bI65kTY0MnJs1O_795cTY7llUTzadfadsEjlltFj91IsYMXOdHPp5UNE';
   const clientSecret =
     process.env.PAYPAL_CLIENT_SECRET ||
-    'EBYn3e_kSk3-oAn_g-hxZO7xwOzfnosWknsqeIk7jDDJlbZX_OPBazwXA5MlZTfXXm-DH3J151fwQ7eC';
+    'EFLRED5A5OP3ieQGP_s8X32fwvaaq1iKG0KsI6Yccj4vnKLWkXqiBr9si30Uk7NGK9eqtlfgs-mtg6im';
 
   if (!clientId || !clientSecret) {
     throw new Error('PayPal Client ID or Secret is missing in environment variables.');

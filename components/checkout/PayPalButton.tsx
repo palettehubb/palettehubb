@@ -34,7 +34,7 @@ export default function PayPalButton({
   const [isProcessing, setIsProcessing] = useState(false);
   const clientId =
     process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ||
-    'Af_M98Cn4XAf4ZlM0AEZEWqOUurcjhIWnS9CKfxv81gAddrLiRhZRQj8OQrVxRTd0euOdpgQjjl7SFYJ';
+    'BAA29Z8SGTxCZCNtjhPHqWvhu2bI65kTY0MnJs1O_795cTY7llUTzadfadsEjlltFj91IsYMXOdHPp5UNE';
 
   // Load the PayPal JS SDK dynamically
   useEffect(() => {

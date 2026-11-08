@@ -109,6 +109,7 @@ export default function AdminDashboardClient() {
 
   // Supplier modal state
   const [supModalOpen, setSupModalOpen] = useState(false);
+  const [editingSupplierId, setEditingSupplierId] = useState<string | null>(null);
   const [newSupName, setNewSupName] = useState('');
   const [newSupContact, setNewSupContact] = useState('');
   const [newSupEmail, setNewSupEmail] = useState('');
@@ -676,43 +677,102 @@ export default function AdminDashboardClient() {
     }
   };
 
-  // Create Supplier
+  const handleOpenAddSupplier = () => {
+    setEditingSupplierId(null);
+    setNewSupName('');
+    setNewSupContact('');
+    setNewSupEmail('');
+    setNewSupPhone('');
+    setNewSupLeadTime('3');
+    setNewSupNotes('');
+    setNewSupPassword('');
+    setSupModalOpen(true);
+  };
+
+  const handleOpenEditSupplier = (sup: ISupplier) => {
+    setEditingSupplierId(sup._id);
+    setNewSupName(sup.name || '');
+    setNewSupContact(sup.contactName || '');
+    setNewSupEmail(sup.email || '');
+    setNewSupPhone(sup.phone || '');
+    setNewSupLeadTime(String(sup.leadTimeDays || 3));
+    setNewSupNotes(sup.notes || '');
+    setNewSupPassword('');
+    setSupModalOpen(true);
+  };
+
+  // Create or Update Supplier
   const handleCreateSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSupName || !newSupEmail || !newSupPhone) return;
     setSavingSupplier(true);
 
     try {
-      const res = await fetch('/api/admin/suppliers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newSupName,
-          contactName: newSupContact || newSupName,
-          email: newSupEmail,
-          phone: newSupPhone,
-          leadTimeDays: Number(newSupLeadTime) || 3,
-          password: newSupPassword || 'Supplier@123',
-          notes: newSupNotes,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        if (data.supplier) {
-          setSuppliers((prev) => [data.supplier, ...prev]);
+      if (editingSupplierId) {
+        // PUT update
+        const res = await fetch('/api/admin/suppliers', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: editingSupplierId,
+            name: newSupName,
+            contactName: newSupContact || newSupName,
+            email: newSupEmail,
+            phone: newSupPhone,
+            leadTimeDays: Number(newSupLeadTime) || 3,
+            password: newSupPassword ? newSupPassword.trim() : undefined,
+            notes: newSupNotes,
+          }),
+        });
+        const data = await res.json();
+        if (data.success && data.supplier) {
+          setSuppliers((prev) =>
+            prev.map((s) => (s._id === editingSupplierId ? data.supplier : s))
+          );
+          showToast(`Supplier "${newSupName}" updated successfully!`);
+          setSupModalOpen(false);
+          setEditingSupplierId(null);
+          fetchAdminData(true);
+        } else {
+          showToast(data.error || 'Failed to update supplier');
         }
-        showToast(`Supplier partner "${newSupName}" added!`);
-        setSupModalOpen(false);
-        setNewSupName('');
-        setNewSupContact('');
-        setNewSupEmail('');
-        setNewSupPhone('');
-        setNewSupNotes('');
-        setNewSupPassword('');
-        fetchAdminData(true);
+      } else {
+        // POST create
+        const res = await fetch('/api/admin/suppliers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: newSupName,
+            contactName: newSupContact || newSupName,
+            email: newSupEmail,
+            phone: newSupPhone,
+            leadTimeDays: Number(newSupLeadTime) || 3,
+            password: newSupPassword || 'Supplier@123',
+            notes: newSupNotes,
+          }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          if (data.supplier) {
+            setSuppliers((prev) => [data.supplier, ...prev]);
+          }
+          showToast(`Supplier partner "${newSupName}" added!`);
+          setSupModalOpen(false);
+          setEditingSupplierId(null);
+          setNewSupName('');
+          setNewSupContact('');
+          setNewSupEmail('');
+          setNewSupPhone('');
+          setNewSupNotes('');
+          setNewSupPassword('');
+          fetchAdminData(true);
+        } else {
+          showToast(data.error || 'Failed to add supplier');
+        }
       }
     } catch (err) {
       console.error(err);
+      showToast('Error saving supplier');
     } finally {
       setSavingSupplier(false);
     }
@@ -876,6 +936,16 @@ export default function AdminDashboardClient() {
               <ExternalLink className="w-3.5 h-3.5" />
               <span>Storefront</span>
             </Link>
+            <button
+              onClick={async () => {
+                await fetch('/api/admin/auth/logout', { method: 'POST' });
+                window.location.href = '/admin/login';
+              }}
+              className="inline-flex items-center justify-center gap-1.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 text-xs font-semibold px-3.5 py-2.5 rounded-xl transition-colors cursor-pointer"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>Sign Out</span>
+            </button>
           </div>
         </div>
 
@@ -1510,7 +1580,7 @@ export default function AdminDashboardClient() {
                 </p>
               </div>
               <button
-                onClick={() => setSupModalOpen(true)}
+                onClick={handleOpenAddSupplier}
                 className="inline-flex items-center gap-2 bg-black text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-neutral-800 transition-colors cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
@@ -1558,12 +1628,20 @@ export default function AdminDashboardClient() {
 
                   <div className="pt-3 border-t border-neutral-100 flex items-center justify-between">
                     <span className="text-[11px] text-neutral-400 font-mono">ID: {sup._id}</span>
-                    <button
-                      onClick={() => handleDeleteSupplier(sup._id, sup.name)}
-                      className="text-xs text-red-500 hover:text-red-700 font-semibold cursor-pointer"
-                    >
-                      Delete
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => handleOpenEditSupplier(sup)}
+                        className="text-xs text-[#0070ba] hover:underline font-bold cursor-pointer"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSupplier(sup._id, sup.name)}
+                        className="text-xs text-red-500 hover:text-red-700 font-semibold cursor-pointer"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -1891,7 +1969,11 @@ export default function AdminDashboardClient() {
                   Total Gross Sales
                 </span>
                 <p className="text-2xl sm:text-3xl font-black text-neutral-900">
-                  $ {stats?.totalSales ? stats.totalSales.toFixed(2) : '12,840.00'}
+                  ${' '}
+                  {(stats?.totalSales !== undefined
+                    ? stats.totalSales
+                    : orders.reduce((acc, o) => acc + (o.total || 0), 0)
+                  ).toFixed(2)}
                 </p>
                 <span className="text-[11px] text-emerald-600 font-semibold mt-1 block">
                   ↑ Verified ecommerce payments
@@ -2541,7 +2623,9 @@ export default function AdminDashboardClient() {
           <div className="fixed inset-0 z-50 overflow-y-auto flex sm:items-center justify-center p-3 sm:p-4">
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSupModalOpen(false)} />
             <div className="relative bg-white rounded-2xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-neutral-200 space-y-4 animate-in zoom-in-95 duration-200 my-auto max-h-[92vh] overflow-y-auto">
-              <h3 className="font-bold text-base text-neutral-900">Add Dropship Supplier Partner</h3>
+              <h3 className="font-bold text-base text-neutral-900">
+                {editingSupplierId ? 'Edit Dropship Supplier Partner' : 'Add Dropship Supplier Partner'}
+              </h3>
               <form onSubmit={handleCreateSupplier} className="space-y-3 text-xs">
                 <div>
                   <label className="block font-bold uppercase mb-1">Company Name *</label>
@@ -2598,18 +2682,28 @@ export default function AdminDashboardClient() {
                   />
                 </div>
                 <div>
-                  <label className="block font-bold uppercase mb-1 text-xs">Supplier Login Password *</label>
+                  <label className="block font-bold uppercase mb-1 text-xs">
+                    {editingSupplierId
+                      ? 'Change Supplier Password (Leave blank to keep current)'
+                      : 'Supplier Login Password *'}
+                  </label>
                   <input
                     type="password"
-                    required
-                    minLength={6}
+                    required={!editingSupplierId}
+                    minLength={editingSupplierId && !newSupPassword ? 0 : 6}
                     value={newSupPassword}
                     onChange={(e) => setNewSupPassword(e.target.value)}
-                    placeholder="Dashboard password (min 6 chars)"
+                    placeholder={
+                      editingSupplierId
+                        ? 'Enter new password or leave blank'
+                        : 'Dashboard password (min 6 chars)'
+                    }
                     className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-black"
                   />
                   <span className="text-[10px] text-neutral-400 mt-1 block">
-                    Supplier will use this email and password to log in at /supplier-dashboard
+                    {editingSupplierId
+                      ? 'Updating password here will revoke old supplier access and require this new password.'
+                      : 'Supplier will use this email and password to log in at /supplier-dashboard'}
                   </span>
                 </div>
                 <div>
@@ -2623,11 +2717,26 @@ export default function AdminDashboardClient() {
                   />
                 </div>
                 <div className="pt-3 flex justify-end gap-2">
-                  <button type="button" onClick={() => setSupModalOpen(false)} className="px-4 py-2 font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSupModalOpen(false);
+                      setEditingSupplierId(null);
+                    }}
+                    className="px-4 py-2 font-semibold"
+                  >
                     Cancel
                   </button>
-                  <button type="submit" disabled={savingSupplier} className="bg-black text-white px-5 py-2 rounded-xl font-bold">
-                    {savingSupplier ? 'Saving...' : 'Add Supplier'}
+                  <button
+                    type="submit"
+                    disabled={savingSupplier}
+                    className="bg-black text-white px-5 py-2 rounded-xl font-bold cursor-pointer"
+                  >
+                    {savingSupplier
+                      ? 'Saving...'
+                      : editingSupplierId
+                      ? 'Update Supplier'
+                      : 'Add Supplier'}
                   </button>
                 </div>
               </form>
