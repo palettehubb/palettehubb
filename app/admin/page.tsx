@@ -1,5 +1,6 @@
 import React from 'react';
 import { redirect } from 'next/navigation';
+import { connection } from 'next/server';
 import { getAdminSession } from '@/lib/auth';
 import connectToDatabase from '@/lib/db';
 import Admin from '@/models/Admin';
@@ -11,9 +12,9 @@ export const metadata = {
 };
 
 export const instant = false;
-export const dynamic = 'force-dynamic';
 
 export default async function AdminPage() {
+  await connection();
   const session = await getAdminSession();
   if (!session) {
     redirect('/admin/login');
