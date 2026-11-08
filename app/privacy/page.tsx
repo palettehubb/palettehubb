@@ -15,96 +15,88 @@ import {
   ArrowLeft,
   CheckCircle2,
   Clock,
-  AlertCircle,
+  Sparkles,
 } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy | Palette Hubb',
+  title: 'Privacy Policy — Palette Hubb',
   description:
-    'Learn how Palette Hubb collects, protects, and handles your personal information, including our Stripe-secured payment processing and dropship fulfillment.',
+    'Learn how Palette Hubb collects, protects, and handles your personal information, including PayPal-secured payment processing and automated dropship order fulfillment.',
 };
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="min-h-screen bg-[#f7f5ee] py-10 sm:py-16 select-none">
+    <div className="min-h-screen bg-white py-12 sm:py-16 text-neutral-900 select-none">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-
-        {/* Back Link */}
+        
+        {/* Navigation Breadcrumb */}
         <div className="mb-6">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-neutral-600 hover:text-neutral-900 transition-colors"
+            className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-neutral-500 hover:text-black transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Back to Home</span>
+            <span>Back to Storefront</span>
           </Link>
         </div>
 
-        {/* Header Hero Card */}
-        <div className="bg-white rounded-3xl p-6 sm:p-10 border border-[#ded7ca]/70 shadow-sm mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#f4ebe1] text-[#8c674b] text-[11px] font-semibold tracking-widest uppercase mb-4">
-            <Shield className="w-3.5 h-3.5" />
-            <span>Data Protection & Privacy</span>
+        {/* Hero Header */}
+        <div className="border-b border-neutral-200 pb-8 mb-10">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-100 text-neutral-800 text-[11px] font-bold tracking-wider uppercase mb-4 border border-neutral-200">
+            <Shield className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Data Protection & Privacy Standards</span>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900 mb-3">
+          <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-neutral-900 mb-3">
             Privacy Policy
           </h1>
-          <p className="text-base sm:text-lg text-[#985842] font-medium mb-4">
-            How we protect your data, fulfill orders, and process payments securely via Stripe.
+          <p className="text-base sm:text-lg text-neutral-600 font-medium">
+            How Palette Hubb safeguards your personal data, handles dropship fulfillment, and ensures encrypted financial transactions via PayPal.
           </p>
 
-          <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm text-neutral-500 pt-3 border-t border-neutral-100">
+          <div className="flex flex-wrap items-center gap-4 text-xs text-neutral-500 mt-5 pt-4 border-t border-neutral-100 font-medium">
             <span className="flex items-center gap-1.5">
               <Clock className="w-4 h-4 text-neutral-400" />
-              Effective Date: <strong className="text-neutral-700">January 1, 2026</strong>
+              Effective Date: <strong>November 2026</strong>
             </span>
             <span>•</span>
             <span className="flex items-center gap-1.5">
               <Lock className="w-4 h-4 text-emerald-600" />
-              256-bit SSL Encrypted
+              256-Bit SSL Encryption
             </span>
             <span>•</span>
-            <span className="flex items-center gap-1.5">
-              <CreditCard className="w-4 h-4 text-indigo-600" />
-              Stripe PCI-DSS Level 1 Certified
+            <span className="flex items-center gap-1.5 text-[#0070ba]">
+              <CreditCard className="w-4 h-4" />
+              PayPal Verified Live Integration
             </span>
           </div>
-
-          <p className="mt-5 text-sm sm:text-base text-neutral-600 leading-relaxed">
-            Welcome to <strong>Palette Hubb</strong> (&ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;). We respect your privacy and are committed to protecting the personal data you share with us. This Privacy Policy outlines what information we collect, how it is used, and the security measures we take to safeguard your purchases and personal details.
-          </p>
         </div>
 
-        {/* Highlight Card: Stripe Payment Security */}
-        <div className="bg-gradient-to-br from-[#1a1714] to-[#29221c] text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-neutral-800 mb-8 relative overflow-hidden">
-          <div className="absolute top-0 right-0 bg-[#635BFF] text-white text-[10px] sm:text-xs font-bold uppercase tracking-widest px-4 py-1.5 rounded-bl-2xl">
-            Stripe Verified
-          </div>
-
-          <div className="flex items-start gap-4 sm:gap-5">
-            <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white shrink-0 border border-white/10">
-              <CreditCard className="w-6 h-6 text-[#7a73ff]" />
+        {/* Highlight Card: PayPal Financial Protection */}
+        <div className="bg-sky-50/60 rounded-3xl p-6 sm:p-8 border border-sky-100 shadow-sm mb-10">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-[#0070ba] text-white flex items-center justify-center shrink-0 shadow-sm">
+              <Lock className="w-6 h-6" />
             </div>
-            <div className="flex-1 pr-14 sm:pr-0">
-              <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-amber-300 mb-1">
-                <span>Secure Financial Processing</span>
-              </div>
-              <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">
-                Payment Security Powered by Stripe
+            <div>
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#0070ba] block mb-1">
+                Official Gateway Compliance
+              </span>
+              <h2 className="text-xl sm:text-2xl font-extrabold text-neutral-900 mb-2">
+                100% Secure Payments via PayPal
               </h2>
-              <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed mb-4 font-light">
-                All digital transactions on Palette Hubb are handled directly through <strong>Stripe, Inc.</strong>, a global leader in payment processing with the highest grade of payment security (PCI-DSS Level 1 compliance).
+              <p className="text-xs sm:text-sm text-neutral-700 leading-relaxed mb-4">
+                All financial payments on <strong>Palette Hubb</strong> (including debit cards, credit cards, and PayPal accounts) are processed directly through <strong>PayPal Holdings, Inc.</strong> via TLS 1.3 / 256-bit SSL encrypted tokenization.
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-neutral-200">
-                <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-start gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <span><strong>Zero Card Storage:</strong> Palette Hubb never stores or accesses your full credit card number, CVV, or banking credentials.</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-neutral-800">
+                <div className="p-3.5 rounded-2xl bg-white border border-sky-200/60 flex items-start gap-2.5 shadow-2xs">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span><strong>Zero Card Storage:</strong> Palette Hubb never receives, stores, or sees your credit card number, CVV, or bank login details.</span>
                 </div>
-                <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-start gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <span><strong>End-to-End Encryption:</strong> Financial details are tokenized and sent straight to Stripe via TLS 1.3 / 256-bit SSL encryption.</span>
+                <div className="p-3.5 rounded-2xl bg-white border border-sky-200/60 flex items-start gap-2.5 shadow-2xs">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span><strong>Buyer Protection:</strong> Transactions are covered under PayPal Buyer Protection policies against unauthorized charges.</span>
                 </div>
               </div>
             </div>
@@ -112,219 +104,111 @@ export default function PrivacyPolicyPage() {
         </div>
 
         {/* Policy Sections */}
-        <div className="space-y-6">
+        <div className="space-y-8 text-neutral-700 text-sm leading-relaxed">
+          
+          {/* Section 1 */}
+          <div className="border border-neutral-200 rounded-3xl p-6 sm:p-8 bg-neutral-50/30 space-y-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-neutral-500 uppercase tracking-wider">
+              <FileText className="w-4 h-4 text-neutral-700" />
+              <span>Section 1</span>
+            </div>
+            <h3 className="text-xl font-bold text-neutral-900">1. Information We Collect</h3>
+            <p>
+              When you purchase garments, accessories, or collectibles from Palette Hubb, we collect the necessary information required to process and dispatch your parcel:
+            </p>
+            <ul className="space-y-2 list-disc list-inside pl-2 text-xs sm:text-sm text-neutral-600">
+              <li><strong>Customer Contact Details:</strong> Full Name, Email Address, and Phone Number for order status and tracking milestones.</li>
+              <li><strong>Shipping Destination:</strong> Street address, Apartment/Suite, City, State/Province, Postal Code, and Country.</li>
+              <li><strong>Order History:</strong> Product items, selected sizes, quantities, order date, order reference numbers, and payment status.</li>
+              <li><strong>Return Verification Media:</strong> Continuous unboxing video files or links submitted for transit damage or defective item claims under our 3-Day Return Policy.</li>
+            </ul>
+          </div>
 
-          {/* Section 1: Information We Collect */}
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#ded7ca]/70 shadow-sm">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-[#f4ebe1] flex items-center justify-center text-[#985842] shrink-0">
-                <FileText className="w-5 h-5 sm:w-6 sm:h-6" />
+          {/* Section 2 */}
+          <div className="border border-neutral-200 rounded-3xl p-6 sm:p-8 bg-neutral-50/30 space-y-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-neutral-500 uppercase tracking-wider">
+              <Truck className="w-4 h-4 text-neutral-700" />
+              <span>Section 2</span>
+            </div>
+            <h3 className="text-xl font-bold text-neutral-900">2. Dropship Fulfillment & Supplier Data Sharing</h3>
+            <p>
+              Palette Hubb operates a curated direct-to-consumer dropshipping model. In order to dispatch your order directly from our manufacturing partner hubs:
+            </p>
+            <ul className="space-y-2 list-disc list-inside pl-2 text-xs sm:text-sm text-neutral-600">
+              <li>Your recipient name, delivery address, and phone number are passed securely to the verified manufacturing facility assigned to print and pack your order.</li>
+              <li>Logistics couriers (e.g. Bluedart, FedEx, DHL, Delhivery) receive your delivery address solely for shipping and tracking services.</li>
+              <li><strong>We NEVER sell or monetize your data:</strong> Palette Hubb never sells, rents, leases, or trades your personal information to third-party marketing brokers or advertising networks.</li>
+            </ul>
+          </div>
+
+          {/* Section 3 */}
+          <div className="border border-neutral-200 rounded-3xl p-6 sm:p-8 bg-neutral-50/30 space-y-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-neutral-500 uppercase tracking-wider">
+              <Cookie className="w-4 h-4 text-neutral-700" />
+              <span>Section 3</span>
+            </div>
+            <h3 className="text-xl font-bold text-neutral-900">3. Cookies & Local Browser Storage</h3>
+            <p>
+              We utilize essential browser cookies and local storage tokens to deliver a frictionless shopping experience:
+            </p>
+            <ul className="space-y-2 list-disc list-inside pl-2 text-xs sm:text-sm text-neutral-600">
+              <li><strong>Cart & Wishlist Persistence:</strong> Products saved in your bag or wishlist remain in your local browser memory across sessions.</li>
+              <li><strong>Device Order Tracking:</strong> Recent order numbers placed on your device are saved locally so you can check live milestones on the Track Order page with one click.</li>
+              <li><strong>Authentication Tokens:</strong> Secure HTTP-only cookies are used to verify authenticated administrative and supplier operations.</li>
+            </ul>
+          </div>
+
+          {/* Section 4 */}
+          <div className="border border-neutral-200 rounded-3xl p-6 sm:p-8 bg-neutral-50/30 space-y-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-neutral-500 uppercase tracking-wider">
+              <Database className="w-4 h-4 text-neutral-700" />
+              <span>Section 4</span>
+            </div>
+            <h3 className="text-xl font-bold text-neutral-900">4. Data Retention & Cryptographic Safeguards</h3>
+            <p>
+              We maintain order records for accounting, legal taxation, and warranty validation. All stored information is protected using industry-standard technical measures:
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs">
+              <div className="p-3 rounded-2xl bg-white border border-neutral-200">
+                <strong className="block text-neutral-900 mb-1">Encrypted Transit</strong>
+                <span>100% of network traffic is encrypted via HTTPS / TLS 1.3 certificates.</span>
               </div>
-              <div className="flex-1">
-                <span className="text-xs font-bold text-[#985842] uppercase tracking-wider">Section 1</span>
-                <h3 className="text-xl font-bold text-neutral-900 mb-2">
-                  1. Information We Collect
-                </h3>
-                <p className="text-sm text-neutral-600 leading-relaxed mb-4">
-                  We collect information necessary to fulfill your fashion orders and offer an exceptional shopping experience:
-                </p>
-
-                <ul className="space-y-3 text-xs sm:text-sm text-neutral-700">
-                  <li className="flex items-start gap-3">
-                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-900 mt-2 shrink-0" />
-                    <div>
-                      <strong>Contact & Shipping Data:</strong> Full name, shipping address, city, state, postal code, phone number, and email address for order delivery and tracking notifications.
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-900 mt-2 shrink-0" />
-                    <div>
-                      <strong>Order & Transaction Records:</strong> Purchased products, sizes, quantities, order date, order reference numbers, and payment status (provided by Stripe).
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-900 mt-2 shrink-0" />
-                    <div>
-                      <strong>Return & Verification Evidence:</strong> Continuous unboxing video files or links submitted for transit damage or defective item claims under our 3-Day Return Policy.
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-900 mt-2 shrink-0" />
-                    <div>
-                      <strong>Account Credentials:</strong> Hashed passwords protected by salt-hashed bcrypt algorithms. We cannot read or view your plaintext password.
-                    </div>
-                  </li>
-                </ul>
+              <div className="p-3 rounded-2xl bg-white border border-neutral-200">
+                <strong className="block text-neutral-900 mb-1">Password Hashing</strong>
+                <span>All account credentials are protected using salted bcrypt hash algorithms.</span>
+              </div>
+              <div className="p-3 rounded-2xl bg-white border border-neutral-200">
+                <strong className="block text-neutral-900 mb-1">Session Invalidation</strong>
+                <span>Immediate multi-device token revocation upon password modification.</span>
               </div>
             </div>
           </div>
 
-          {/* Section 2: How We Use Your Information */}
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#ded7ca]/70 shadow-sm">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-700 shrink-0">
-                <UserCheck className="w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
-              <div className="flex-1">
-                <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Section 2</span>
-                <h3 className="text-xl font-bold text-neutral-900 mb-2">
-                  2. How We Use Your Information
-                </h3>
-                <p className="text-sm text-neutral-600 leading-relaxed mb-4">
-                  Your data is used strictly for legitimate commercial and customer service purposes:
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm text-neutral-700">
-                  <div className="p-3.5 rounded-2xl bg-neutral-50 border border-neutral-100 flex items-start gap-2.5">
-                    <span className="text-emerald-600 font-bold">✓</span>
-                    <span><strong>Order Fulfillment:</strong> Routing purchase orders to verified suppliers and dispatching parcels to your doorstep.</span>
-                  </div>
-                  <div className="p-3.5 rounded-2xl bg-neutral-50 border border-neutral-100 flex items-start gap-2.5">
-                    <span className="text-emerald-600 font-bold">✓</span>
-                    <span><strong>Payment Authentication:</strong> Securely initiating, authenticating, and confirming transactions with Stripe.</span>
-                  </div>
-                  <div className="p-3.5 rounded-2xl bg-neutral-50 border border-neutral-100 flex items-start gap-2.5">
-                    <span className="text-emerald-600 font-bold">✓</span>
-                    <span><strong>Real-time Tracking:</strong> Providing live delivery updates via our Track Order portal and email/SMS confirmations.</span>
-                  </div>
-                  <div className="p-3.5 rounded-2xl bg-neutral-50 border border-neutral-100 flex items-start gap-2.5">
-                    <span className="text-emerald-600 font-bold">✓</span>
-                    <span><strong>Fraud Prevention & Support:</strong> Inspecting unboxing videos to honor legitimate return/refund claims and protect against fraudulent chargebacks.</span>
-                  </div>
-                </div>
-              </div>
+          {/* Section 5 */}
+          <div className="border border-neutral-200 rounded-3xl p-6 sm:p-8 bg-neutral-50/30 space-y-4">
+            <div className="flex items-center gap-2 text-xs font-bold text-neutral-500 uppercase tracking-wider">
+              <UserCheck className="w-4 h-4 text-neutral-700" />
+              <span>Section 5</span>
             </div>
-          </div>
+            <h3 className="text-xl font-bold text-neutral-900">5. Your Consumer Rights & Contact</h3>
+            <p>
+              You have the right to request access to the personal data we maintain regarding your purchases, request delivery detail corrections, or request data deletion under applicable global privacy regulations (including GDPR and CCPA).
+            </p>
 
-          {/* Section 3: Dropshipping & Third-Party Sharing */}
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#ded7ca]/70 shadow-sm">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
-                <Truck className="w-5 h-5 sm:w-6 sm:h-6" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-neutral-200">
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 block">
+                  Official Privacy & Compliance Support
+                </span>
+                <span className="text-sm font-bold text-neutral-900">palettehubb@gmail.com</span>
               </div>
-              <div className="flex-1">
-                <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">Section 3</span>
-                <h3 className="text-xl font-bold text-neutral-900 mb-2">
-                  3. Dropshipping Model & Third-Party Sharing
-                </h3>
-                <p className="text-sm text-neutral-600 leading-relaxed mb-4">
-                  Palette Hubb operates a curated supplier-fulfilled dropshipping marketplace. To deliver your items, we share strictly necessary details with trusted partners:
-                </p>
-
-                <div className="space-y-3 bg-neutral-50 rounded-2xl p-4 sm:p-5 border border-neutral-200/70 text-xs sm:text-sm text-neutral-700">
-                  <p>
-                    <strong>Fulfillment Suppliers & Logistics Couriers:</strong> When you place an order, your recipient name, delivery address, and contact number are passed to the designated supplier and shipping courier (e.g. Delhivery, BlueDart, DTDC, India Post) solely for dispatching and delivering your parcel.
-                  </p>
-                  <p>
-                    <strong>Payment Service Provider (Stripe):</strong> Stripe processes and evaluates payments for fraud prevention under its own independent privacy policy (<a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer" className="text-[#985842] underline underline-offset-2 hover:text-[#834633]">stripe.com/privacy</a>).
-                  </p>
-                  <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 font-medium">
-                    ✦ <strong>We never sell your data:</strong> We do not sell, rent, monetize, or lease your personal contact information to any third-party advertisers or data brokers.
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 4: Local Storage & Cookies */}
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#ded7ca]/70 shadow-sm">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-700 shrink-0">
-                <Cookie className="w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
-              <div className="flex-1">
-                <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">Section 4</span>
-                <h3 className="text-xl font-bold text-neutral-900 mb-2">
-                  4. Cookies & Browser Local Storage
-                </h3>
-                <p className="text-sm text-neutral-600 leading-relaxed mb-3">
-                  We use cookies and HTML5 browser local storage to provide essential storefront functionality:
-                </p>
-
-                <ul className="space-y-2 text-xs sm:text-sm text-neutral-700">
-                  <li className="flex items-start gap-2.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-900 mt-2 shrink-0" />
-                    <span><strong>Shopping Bag & Wishlist:</strong> Items added to your cart or saved to your wishlist are preserved in your local browser storage so your selection is remembered across page visits.</span>
-                  </li>
-                  <li className="flex items-start gap-2.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-900 mt-2 shrink-0" />
-                    <span><strong>Coupon Memory:</strong> Validated promotional discount codes are temporarily retained during your checkout session.</span>
-                  </li>
-                  <li className="flex items-start gap-2.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-900 mt-2 shrink-0" />
-                    <span><strong>Security & Session Tokens:</strong> Secure HTTP cookies are used to verify authenticated customer and supplier sessions.</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 5: Data Retention & Security */}
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#ded7ca]/70 shadow-sm">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-700 shrink-0">
-                <Database className="w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
-              <div className="flex-1">
-                <span className="text-xs font-bold text-purple-700 uppercase tracking-wider">Section 5</span>
-                <h3 className="text-xl font-bold text-neutral-900 mb-2">
-                  5. Data Retention & Safeguards
-                </h3>
-                <p className="text-sm text-neutral-600 leading-relaxed mb-3">
-                  We retain order records for accounting, legal taxation, and return-warranty validation requirements. All stored data is shielded by multi-layered technical protections:
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-neutral-700 pt-2">
-                  <div className="p-3.5 rounded-2xl bg-neutral-50 border border-neutral-100">
-                    <strong className="block text-neutral-900 mb-1">Encrypted Transit</strong>
-                    <span>100% of network traffic is encrypted via HTTPS / TLS certificates.</span>
-                  </div>
-                  <div className="p-3.5 rounded-2xl bg-neutral-50 border border-neutral-100">
-                    <strong className="block text-neutral-900 mb-1">Stripe Shield</strong>
-                    <span>PCI Level 1 certified vaulting for payment credentials.</span>
-                  </div>
-                  <div className="p-3.5 rounded-2xl bg-neutral-50 border border-neutral-100">
-                    <strong className="block text-neutral-900 mb-1">Access Controls</strong>
-                    <span>Restricted database access limited strictly to authorized operational personnel.</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 6: Customer Rights & Contact */}
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#ded7ca]/70 shadow-sm">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-700 shrink-0">
-                <Eye className="w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
-              <div className="flex-1">
-                <span className="text-xs font-bold text-rose-700 uppercase tracking-wider">Section 6</span>
-                <h3 className="text-xl font-bold text-neutral-900 mb-2">
-                  6. Your Privacy Rights & Contact
-                </h3>
-                <p className="text-sm text-neutral-600 leading-relaxed mb-4">
-                  You have the right to request access to the personal data we hold about you, request corrections to your delivery details, or request account closure.
-                </p>
-
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-neutral-50 border border-neutral-200/80">
-                  <div>
-                    <span className="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-0.5">
-                      Privacy & Data Requests
-                    </span>
-                    <p className="text-sm font-semibold text-neutral-900">
-                      privacy@palettehubb.com
-                    </p>
-                  </div>
-                  <a
-                    href="mailto:privacy@palettehubb.com"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-neutral-900 text-white hover:bg-neutral-800 text-xs font-semibold transition-colors shadow-sm"
-                  >
-                    <Mail className="w-3.5 h-3.5" />
-                    <span>Email Privacy Team</span>
-                  </a>
-                </div>
-              </div>
+              <a
+                href="mailto:palettehubb@gmail.com?subject=Privacy%20Data%20Request"
+                className="inline-flex items-center gap-2 bg-black hover:bg-neutral-800 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-colors shadow-sm"
+              >
+                <Mail className="w-3.5 h-3.5" />
+                <span>Contact Privacy Team</span>
+              </a>
             </div>
           </div>
 
@@ -334,4 +218,3 @@ export default function PrivacyPolicyPage() {
     </div>
   );
 }
-

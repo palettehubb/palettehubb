@@ -62,6 +62,21 @@ export async function POST(req: NextRequest) {
     // 2. Connect to Database and Validate Order Data
     await connectToDatabase();
 
+    // Idempotency check: Return existing order if this PayPal payment was already processed
+    const existingOrder = await Order.findOne({
+      $or: [{ paypalOrderId }, { paypalCaptureId: captureId }],
+    }).lean();
+
+    if (existingOrder) {
+      return NextResponse.json({
+        success: true,
+        orderNumber: existingOrder.orderNumber,
+        order: existingOrder,
+        captureId,
+        idempotent: true,
+      });
+    }
+
     const verifiedItems: IOrderItem[] = [];
     let serverSubtotal = 0;
 
@@ -106,20 +121,16 @@ export async function POST(req: NextRequest) {
 
       serverSubtotal += actualPrice * qty;
 
-      // Update product inventory & sales atomically
+      // Update product inventory & sales atomically with concurrency guard
       if (dbProduct) {
         await Product.updateOne(
-          { _id: dbProduct._id },
+          { _id: dbProduct._id, stock: { $gte: qty } },
           {
             $inc: {
               salesCount: qty,
               stock: -qty,
             },
           }
-        );
-        await Product.updateOne(
-          { _id: dbProduct._id, stock: { $lt: 0 } },
-          { $set: { stock: 0 } }
         );
       }
     }

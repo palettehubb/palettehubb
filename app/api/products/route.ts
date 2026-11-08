@@ -73,13 +73,20 @@ export async function GET(req: NextRequest) {
       Product.countDocuments(query),
     ]);
 
-    return NextResponse.json({
-      success: true,
-      count: products.length,
-      total,
-      page,
-      products,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        count: products.length,
+        total,
+        page,
+        products,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        },
+      }
+    );
   } catch (error: unknown) {
     console.error('Error fetching products:', error);
     return NextResponse.json(

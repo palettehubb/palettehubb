@@ -53,7 +53,8 @@ export default function AdminLoginPage() {
         throw new Error(data.error || 'Invalid credentials');
       }
 
-      router.push('/admin');
+      // Direct window.location ensures cookie is attached immediately without client-router race condition
+      window.location.href = '/admin';
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Login failed');
       setLoading(false);

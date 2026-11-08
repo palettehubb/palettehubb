@@ -8,7 +8,14 @@ export async function GET() {
     const db = await connectToDatabase();
     if (db) {
       const categories = await Category.find({ isActive: true }).sort({ order: 1, createdAt: 1 }).lean();
-      return NextResponse.json({ success: true, categories });
+      return NextResponse.json(
+        { success: true, categories },
+        {
+          headers: {
+            'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+          },
+        }
+      );
     }
 
     return NextResponse.json({

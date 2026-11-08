@@ -141,6 +141,7 @@ export default function FeaturedProducts({ initialProducts = [] }: FeaturedProdu
                 {/* Image Container */}
                 <Link
                   href={`/products/${product.slug}`}
+                  prefetch={true}
                   className="relative aspect-square w-full bg-[#fbf9f4] overflow-hidden flex items-center justify-center p-3 sm:p-4"
                 >
                   <Image
@@ -181,7 +182,7 @@ export default function FeaturedProducts({ initialProducts = [] }: FeaturedProdu
                     {product.category}
                   </span>
 
-                  <Link href={`/products/${product.slug}`}>
+                  <Link href={`/products/${product.slug}`} prefetch={true}>
                     <h3 className="font-bold text-xs sm:text-sm text-neutral-900 line-clamp-1 group-hover:text-black">
                       {product.name}
                     </h3>

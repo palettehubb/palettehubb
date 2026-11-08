@@ -2,9 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Admin from '@/models/Admin';
 import { hashPassword, comparePassword, createAdminToken, ADMIN_COOKIE_NAME } from '@/lib/auth';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 export async function POST(req: NextRequest) {
   try {
+    // 1. Sliding-window rate limiting (10 attempts per minute per IP)
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'admin_ip';
+    const rate = checkRateLimit(`admin_login_${ip}`, 10, 60000);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { success: false, error: 'Too many login attempts. Please wait a minute.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': Math.ceil((rate.resetTime - Date.now()) / 1000).toString(),
+          },
+        }
+      );
+    }
+
     const body = await req.json();
     const { identifier, password } = body;
 
@@ -17,28 +33,38 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase();
 
-    // Auto-seed initial default admin if no admin exists
-    const adminCount = await Admin.countDocuments();
-    if (adminCount === 0) {
-      const defaultPasswordHash = await hashPassword('palette123');
-      await Admin.create({
-        username: 'palettehubb@admin',
-        email: 'palettehubb@gmail.com',
-        passwordHash: defaultPasswordHash,
-        tokenVersion: 0,
-      });
-    }
-
     const cleanIdentifier = identifier.trim().toLowerCase();
-    const admin = await Admin.findOne({
+
+    // Fast direct lookup without redundant countDocuments()
+    let admin = await Admin.findOne({
       $or: [{ username: cleanIdentifier }, { email: cleanIdentifier }],
     });
 
+    // Auto-seed initial default admin ONLY if lookup fails and DB has zero admins
     if (!admin) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid admin credentials' },
-        { status: 401 }
-      );
+      const adminCount = await Admin.countDocuments();
+      if (adminCount === 0) {
+        const defaultPasswordHash = await hashPassword('palette123');
+        admin = await Admin.create({
+          username: 'palettehubb@admin',
+          email: 'palettehubb@gmail.com',
+          passwordHash: defaultPasswordHash,
+          tokenVersion: 0,
+        });
+
+        // Check if the input matched the newly seeded admin
+        if (cleanIdentifier !== 'palettehubb@admin' && cleanIdentifier !== 'palettehubb@gmail.com') {
+          return NextResponse.json(
+            { success: false, error: 'Invalid admin credentials' },
+            { status: 401 }
+          );
+        }
+      } else {
+        return NextResponse.json(
+          { success: false, error: 'Invalid admin credentials' },
+          { status: 401 }
+        );
+      }
     }
 
     const isValid = await comparePassword(password, admin.passwordHash);

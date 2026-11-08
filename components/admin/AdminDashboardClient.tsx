@@ -363,11 +363,10 @@ export default function AdminDashboardClient() {
     setProductModalOpen(true);
   };
 
-  // Save Product (Create or Update)
+  // Save Product (Optimistic 0ms UI with background sync & rollback)
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prodName.trim() || !prodPrice) return;
-    setSavingProduct(true);
 
     const sizesArr = prodSizes
       .split(',')
@@ -382,20 +381,125 @@ export default function AdminDashboardClient() {
       : prodSubcategory.trim();
 
     const payload = {
-      name: prodName,
-      category: prodCategory,
+      name: prodName.trim(),
+      category: prodCategory.trim(),
       subcategory: chosenSubcategory,
       price: Number(prodPrice),
       originalPrice: prodOrigPrice ? Number(prodOrigPrice) : undefined,
-      description: prodDesc,
+      description: prodDesc.trim(),
       stock: Number(prodStock) || 0,
       images: imagesToSave,
-      variants: { sizes: sizesArr.length > 0 ? sizesArr : ['Standard'] },
+      variants: { sizes: sizesArr.length > 0 ? sizesArr : ['Standard'], colors: [] },
       supplierId: prodSupplierId,
       isFeatured: prodIsFeatured,
     };
 
-    // If custom subcategory added, persist to category's subcategories list as well
+    // Close modal immediately and show optimistic feedback
+    setProductModalOpen(false);
+
+    if (editingProductSlug) {
+      // OPTIMISTIC EDIT
+      const previousProduct = products.find(
+        (p) => p.slug === editingProductSlug || p._id === editingProductSlug
+      );
+
+      // Instant optimistic state update (<16ms)
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.slug === editingProductSlug || p._id === editingProductSlug
+            ? ({
+                ...p,
+                ...payload,
+                updatedAt: new Date().toISOString(),
+              } as IProduct)
+            : p
+        )
+      );
+      showToast(`Product "${prodName}" updated successfully!`);
+
+      // Background synchronization
+      fetch(`/api/products/${editingProductSlug}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.product) {
+            setProducts((prev) =>
+              prev.map((p) =>
+                p.slug === editingProductSlug || p._id === editingProductSlug ? data.product : p
+              )
+            );
+          } else {
+            // Rollback on server rejection
+            if (previousProduct) {
+              setProducts((prev) =>
+                prev.map((p) =>
+                  p.slug === editingProductSlug || p._id === editingProductSlug ? previousProduct : p
+                )
+              );
+            }
+            showToast(data.error || 'Failed to update product. Reverted changes.');
+          }
+        })
+        .catch(() => {
+          if (previousProduct) {
+            setProducts((prev) =>
+              prev.map((p) =>
+                p.slug === editingProductSlug || p._id === editingProductSlug ? previousProduct : p
+              )
+            );
+          }
+          showToast('Network error while updating product. Changes reverted.');
+        });
+    } else {
+      // OPTIMISTIC ADD
+      const tempId = `temp_${Date.now()}`;
+      const tempSlug = `prod_${Date.now()}`;
+      const optimisticProduct: IProduct = {
+        _id: tempId,
+        slug: tempSlug,
+        ...payload,
+        rating: 5.0,
+        reviewsCount: 0,
+        salesCount: 0,
+        isAvailable: true,
+        tags: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Instant optimistic state update (<16ms)
+      setProducts((prev) => [optimisticProduct, ...prev]);
+      showToast(`Product "${prodName}" added to catalog!`);
+
+      // Background synchronization
+      fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.product) {
+            // Replace optimistic product with persistent MongoDB record
+            setProducts((prev) =>
+              prev.map((p) => (p._id === tempId || p.slug === tempSlug ? data.product : p))
+            );
+          } else {
+            // Rollback
+            setProducts((prev) => prev.filter((p) => p._id !== tempId && p.slug !== tempSlug));
+            showToast(data.error || 'Failed to add product.');
+          }
+        })
+        .catch(() => {
+          setProducts((prev) => prev.filter((p) => p._id !== tempId && p.slug !== tempSlug));
+          showToast('Network error adding product. Removed.');
+        });
+    }
+
+    // Persist custom subcategory if entered
     if (chosenSubcategory) {
       const parentCat = categories.find(
         (c) => c.name.toLowerCase() === prodCategory.toLowerCase()
@@ -407,46 +511,6 @@ export default function AdminDashboardClient() {
           body: JSON.stringify({ slug: parentCat.slug, newSubcategory: chosenSubcategory }),
         }).catch(() => {});
       }
-    }
-
-    try {
-      if (editingProductSlug) {
-        // Update existing
-        const res = await fetch(`/api/products/${editingProductSlug}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        const data = await res.json();
-        if (data.success && data.product) {
-          setProducts((prev) =>
-            prev.map((p) =>
-              p.slug === editingProductSlug || p._id === editingProductSlug ? data.product : p
-            )
-          );
-          showToast(`Product "${prodName}" updated successfully!`);
-        }
-      } else {
-        // Create new
-        const res = await fetch('/api/products', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        const data = await res.json();
-        if (data.success && data.product) {
-          setProducts((prev) => [data.product, ...prev]);
-          showToast(`New product "${prodName}" added to catalog!`);
-        }
-      }
-
-      setProductModalOpen(false);
-      fetchAdminData(true);
-    } catch (e) {
-      console.error('Error saving product', e);
-      alert('Failed to save product.');
-    } finally {
-      setSavingProduct(false);
     }
   };
 

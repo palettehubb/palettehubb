@@ -56,5 +56,8 @@ const ProductSchema = new Schema<IProductDoc>(
 ProductSchema.index({ isAvailable: 1, isFeatured: 1 });
 ProductSchema.index({ isAvailable: 1, category: 1 });
 ProductSchema.index({ isAvailable: 1, createdAt: -1 });
+ProductSchema.index({ category: 1, isAvailable: 1, createdAt: -1 });
+ProductSchema.index({ isAvailable: 1, salesCount: -1 });
+ProductSchema.index({ slug: 1, isAvailable: 1 });
 
 export default mongoose.models.Product || mongoose.model<IProductDoc>('Product', ProductSchema);

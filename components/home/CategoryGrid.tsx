@@ -25,14 +25,14 @@ export default function CategoryGrid({ initialCategories }: { initialCategories?
   }, [initialCategories]);
 
   return (
-    <section id="categories" className="bg-[#f7f5ee] py-10 sm:py-14 border-b border-[#e5dfd3]/50">
+    <section id="categories" className="bg-[#f7f5ee] py-12 sm:py-16 border-b border-[#e5dfd3]/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Centered Section Header */}
-        <div className="text-center max-w-xl mx-auto mb-8 sm:mb-10">
+        <div className="text-center max-w-xl mx-auto mb-8 sm:mb-12">
           <span className="text-xs sm:text-sm font-semibold tracking-widest text-[#985842] uppercase">
             Curated Collections
           </span>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-900 tracking-tight mt-1.5">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-neutral-900 tracking-tight mt-1.5">
             Shop By Category
           </h2>
           <div className="w-12 h-0.5 bg-[#985842]/40 mx-auto mt-3 rounded-full" />
@@ -42,42 +42,47 @@ export default function CategoryGrid({ initialCategories }: { initialCategories?
         {loading && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="aspect-[4/3] bg-neutral-200/60 rounded-3xl animate-pulse" />
+              <div key={i} className="aspect-square w-full bg-neutral-200/60 rounded-3xl animate-pulse" />
             ))}
           </div>
         )}
 
-        {/* Categories Grid */}
+        {/* Categories Grid - All Cards Strictly Uniform Same Size */}
         {!loading && categories.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6 justify-center items-center">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
             {categories.map((cat) => (
               <Link
                 key={cat.slug || cat.name}
                 href={`/shop?category=${encodeURIComponent(cat.slug || cat.name)}`}
-                className="group flex flex-col items-center text-center mx-auto w-full max-w-[200px]"
+                prefetch={true}
+                className="group flex flex-col items-center text-center w-full"
               >
-                {/* Rounded card image container */}
-                <div className="relative w-full aspect-[4/3] sm:aspect-square bg-[#ece8de] rounded-2xl sm:rounded-3xl p-2 sm:p-2.5 overflow-hidden border border-[#ded7ca]/60 shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-[1.03] flex items-center justify-center">
+                {/* Dynamically fitted card container: Strictly aspect-square, identical size across all items */}
+                <div className="relative w-full aspect-square bg-[#ece8de] rounded-2xl sm:rounded-3xl overflow-hidden border border-[#ded7ca]/80 shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-[1.03] flex items-center justify-center p-2.5 sm:p-3">
                   {cat.image ? (
-                    <Image
-                      src={cat.image}
-                      alt={cat.name}
-                      width={360}
-                      height={360}
-                      sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 16vw"
-                      className="object-contain w-full h-full p-1 transition-transform duration-300 group-hover:scale-108"
-                    />
+                    <div className="relative w-full h-full flex items-center justify-center">
+                      <Image
+                        src={cat.image}
+                        alt={cat.name}
+                        fill
+                        sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 16vw"
+                        className="object-contain p-1 transition-transform duration-300 group-hover:scale-110 drop-shadow-xs"
+                      />
+                    </div>
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center font-bold text-neutral-400 text-xs">
+                    <div className="w-full h-full flex items-center justify-center font-bold text-neutral-400 text-xs uppercase tracking-wider">
                       {cat.name}
                     </div>
                   )}
+
+                  {/* Subtle inner highlight border on hover */}
+                  <div className="absolute inset-0 rounded-2xl sm:rounded-3xl border border-black/0 group-hover:border-black/10 transition-colors pointer-events-none" />
                 </div>
 
                 {/* Title & Arrow */}
-                <div className="mt-3.5 flex items-center justify-center gap-1.5 text-neutral-900 group-hover:text-black font-semibold text-sm sm:text-base">
-                  <span>{cat.name}</span>
-                  <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
+                <div className="mt-3 flex items-center justify-center gap-1.5 text-neutral-900 group-hover:text-black font-bold text-xs sm:text-sm">
+                  <span className="truncate max-w-[140px]">{cat.name}</span>
+                  <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-1 shrink-0 text-[#985842]" />
                 </div>
               </Link>
             ))}

@@ -615,7 +615,7 @@ export default function ShopClient({
                     >
                       {/* Image container */}
                       <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-neutral-100">
-                        <Link href={`/products/${product.slug}`} className="block w-full h-full">
+                        <Link href={`/products/${product.slug}`} prefetch={true} className="block w-full h-full">
                           <Image
                             src={product.images[0] || '/images/products/oversized-tshirt.png'}
                             alt={product.name}
@@ -663,6 +663,7 @@ export default function ShopClient({
                         </p>
                         <Link
                           href={`/products/${product.slug}`}
+                          prefetch={true}
                           className="font-bold text-sm sm:text-base text-neutral-900 hover:text-black line-clamp-1"
                         >
                           {product.name}
