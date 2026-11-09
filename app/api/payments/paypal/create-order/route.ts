@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createPayPalOrder, convertInrToUsd } from '@/lib/paypal';
+import { createPayPalOrder } from '@/lib/paypal';
 import connectToDatabase from '@/lib/db';
 import Product from '@/models/Product';
 import Coupon from '@/models/Coupon';
@@ -7,73 +7,118 @@ import Coupon from '@/models/Coupon';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { items, couponCode, clientTotal } = body;
+    const { items, couponCode, customer } = body;
 
-    let totalINR = 0;
-
-    // Optional: Calculate server-side verified total if items provided
-    if (items && Array.isArray(items) && items.length > 0) {
-      await connectToDatabase();
-      let serverSubtotal = 0;
-
-      for (const item of items) {
-        const dbProduct = await Product.findOne({
-          $or: [{ _id: item.productId }, { slug: item.slug }],
-        }).lean();
-        const price = dbProduct ? dbProduct.price : item.price;
-        const qty = Math.max(1, Number(item.quantity) || 1);
-        serverSubtotal += price * qty;
-      }
-
-      let discount = 0;
-      if (couponCode) {
-        const cleanCode = couponCode.trim().toUpperCase();
-        const coupon = await Coupon.findOne({ code: cleanCode, isActive: true });
-        if (coupon) {
-          const notExpired = !coupon.expiresAt || new Date(coupon.expiresAt) > new Date();
-          const meetsMin = !coupon.minOrderAmount || serverSubtotal >= coupon.minOrderAmount;
-          if (notExpired && meetsMin) {
-            discount =
-              coupon.discountType === 'percentage'
-                ? (serverSubtotal * coupon.value) / 100
-                : coupon.value;
-            discount = Math.min(discount, serverSubtotal);
-          }
-        }
-      }
-
-      const shipping = 0;
-      const tax = 0;
-      totalINR = Math.round((serverSubtotal - discount) * 100) / 100;
-    } else if (clientTotal && Number(clientTotal) > 0) {
-      totalINR = Number(clientTotal);
-    } else {
+    if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
-        { success: false, error: 'Valid items or order amount required' },
+        { success: false, error: 'Valid items are required for checkout' },
         { status: 400 }
       );
     }
 
-    // Direct USD total
-    const totalUSD = Math.round(totalINR * 100) / 100;
+    const db = await connectToDatabase();
+    if (!db) {
+      return NextResponse.json(
+        { success: false, error: 'Database service is currently unreachable' },
+        { status: 503 }
+      );
+    }
+
+    // Determine destination: Inside Dubai vs Outside Dubai
+    const country = (customer?.country || 'United Arab Emirates').trim().toLowerCase();
+    const state = (customer?.state || 'Dubai').trim().toLowerCase();
+    const isDubai =
+      (country.includes('emirates') || country === 'uae' || country === 'united arab emirates') &&
+      state === 'dubai';
+
+    let serverSubtotal = 0;
+    let serverDelivery = 0;
+    let serverTax = 0;
+
+    // STRICT SERVER-SIDE & DATABASE CALCULATION (Prevents any client price manipulation)
+    for (const item of items) {
+      const dbProduct = await Product.findOne({
+        $or: [{ _id: item.productId }, { slug: item.slug }],
+      }).lean();
+
+      if (!dbProduct) {
+        return NextResponse.json(
+          { success: false, error: `Product not found in catalog: ${item.slug || item.productId}` },
+          { status: 404 }
+        );
+      }
+
+      const qty = Math.max(1, Number(item.quantity) || 1);
+      const actualPrice = Number(dbProduct.price) || 0;
+      serverSubtotal += actualPrice * qty;
+
+      // Delivery charge based on admin configuration:
+      // Inside Dubai vs Outside Dubai
+      const itemDelivery = isDubai
+        ? (Number(dbProduct.deliveryChargeInsideDubai) || 0)
+        : (Number(dbProduct.deliveryChargeOutsideDubai) || 0);
+      serverDelivery += itemDelivery * qty;
+
+      // Tax based on admin configuration
+      const itemTax = Number(dbProduct.tax) || 0;
+      serverTax += itemTax * qty;
+    }
+
+    // Server-side genuine coupon verification
+    let discount = 0;
+    if (couponCode) {
+      const cleanCode = String(couponCode).trim().toUpperCase();
+      const coupon = await Coupon.findOne({ code: cleanCode, isActive: true });
+      if (coupon) {
+        const notExpired = !coupon.expiresAt || new Date(coupon.expiresAt) > new Date();
+        const meetsMin = !coupon.minOrderAmount || serverSubtotal >= coupon.minOrderAmount;
+        if (notExpired && meetsMin) {
+          discount =
+            coupon.discountType === 'percentage'
+              ? (serverSubtotal * coupon.value) / 100
+              : coupon.value;
+          discount = Math.min(discount, serverSubtotal);
+        }
+      }
+    }
+
+    // Total Amount = Product Price (subtotal - discount) + Delivery Charge + Tax
+    const finalTotalUSD = Math.max(
+      0,
+      Math.round((serverSubtotal - discount + serverDelivery + serverTax) * 100) / 100
+    );
+
+    if (finalTotalUSD <= 0) {
+      return NextResponse.json(
+        { success: false, error: 'Calculated order total must be greater than zero' },
+        { status: 400 }
+      );
+    }
 
     const paypalOrder = await createPayPalOrder({
-      amount: totalUSD,
+      amount: finalTotalUSD,
       currency: 'USD',
-      description: 'Palette Hubb Fashion Dropship Order',
+      description: `PALETTE HUB - ${items.length} items (${isDubai ? 'Dubai' : 'Standard'} Delivery)`,
       referenceId: `ph_cart_${Date.now()}`,
     });
 
     const approveLink =
       paypalOrder.links?.find((l: { rel: string; href: string }) => l.rel === 'approve' || l.rel === 'payer-action')?.href ||
-      `https://www.sandbox.paypal.com/checkoutnow?token=${paypalOrder.id}`;
+      `https://www.paypal.com/checkoutnow?token=${paypalOrder.id}`;
 
     return NextResponse.json({
       success: true,
       orderId: paypalOrder.id,
       approvalUrl: approveLink,
-      amountUSD: totalUSD,
-      amountINR: totalINR,
+      amountUSD: finalTotalUSD,
+      breakdown: {
+        subtotal: serverSubtotal,
+        discount,
+        shipping: serverDelivery,
+        tax: serverTax,
+        total: finalTotalUSD,
+        isDubai,
+      },
       status: paypalOrder.status,
     });
   } catch (error: unknown) {

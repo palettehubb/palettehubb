@@ -27,6 +27,9 @@ export interface IProduct {
   price: number;
   originalPrice?: number;
   discountPercent?: number;
+  deliveryChargeInsideDubai?: number;
+  deliveryChargeOutsideDubai?: number;
+  tax?: number;
   images: string[];
   stock: number;
   variants?: {
@@ -57,6 +60,9 @@ export interface ICartItem {
   color?: string;
   stock: number;
   supplierId?: string;
+  deliveryChargeInsideDubai?: number;
+  deliveryChargeOutsideDubai?: number;
+  tax?: number;
 }
 
 export type OrderStatus =
@@ -85,6 +91,9 @@ export interface IOrderItem {
   itemStatus?: 'Pending' | 'Processing' | 'Dispatched' | 'Delivered' | 'Cancelled';
   trackingNumber?: string;
   trackingCarrier?: string;
+  deliveryChargeInsideDubai?: number;
+  deliveryChargeOutsideDubai?: number;
+  tax?: number;
 }
 
 export interface IShippingAddress {
@@ -94,7 +103,7 @@ export interface IShippingAddress {
   street: string;
   city: string;
   state: string;
-  pincode: string;
+  pincode?: string;
   country: string;
 }
 

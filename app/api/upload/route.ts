@@ -1,10 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadImageToCloudinary } from '@/lib/cloudinary';
-
-
+import { getAdminSession, getSupplierSession } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
+    // Security check: Only verified admin or supplier can upload assets
+    const [adminSession, supplierSession] = await Promise.all([
+      getAdminSession(),
+      getSupplierSession(),
+    ]);
+
+    if (!adminSession && !supplierSession) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized. Authentication required for asset uploads.' },
+        { status: 401 }
+      );
+    }
+
     const contentType = req.headers.get('content-type') || '';
 
     let dataUri = '';

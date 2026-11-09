@@ -2,10 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import connectToDatabase from '@/lib/db';
 import Supplier from '@/models/Supplier';
-import { hashPassword } from '@/lib/auth';
+import { hashPassword, getAdminSession } from '@/lib/auth';
 
 export async function GET() {
   try {
+    const session = await getAdminSession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized. Admin credentials required.' },
+        { status: 401 }
+      );
+    }
+
     const db = await connectToDatabase();
     if (db) {
       const suppliers = await Supplier.find().select('-passwordHash').sort({ createdAt: -1 }).lean();
@@ -27,6 +35,14 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getAdminSession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized. Admin credentials required.' },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
 
     if (!body.name || !body.email || !body.phone) {
@@ -36,17 +52,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const plainPassword = body.password ? body.password.trim() : 'Supplier@123';
-    if (plainPassword.length < 6) {
-      return NextResponse.json(
-        { success: false, error: 'Supplier password must be at least 6 characters' },
-        { status: 400 }
-      );
-    }
-
-    const passwordHash = await hashPassword(plainPassword);
     const cleanEmail = body.email.trim().toLowerCase();
-
     const db = await connectToDatabase();
     if (!db) {
       return NextResponse.json(
@@ -63,19 +69,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const created = await Supplier.create({
+    let passwordHash = undefined;
+    if (body.password && body.password.trim().length >= 6) {
+      passwordHash = await hashPassword(body.password.trim());
+    } else {
+      passwordHash = await hashPassword('PaletteSupplier2026!');
+    }
+
+    const newSupplier = await Supplier.create({
       name: body.name.trim(),
       contactName: body.contactName ? body.contactName.trim() : body.name.trim(),
       email: cleanEmail,
-      passwordHash,
       phone: body.phone.trim(),
       website: body.website ? body.website.trim() : '',
       leadTimeDays: Number(body.leadTimeDays) || 3,
       notes: body.notes ? body.notes.trim() : '',
-      isActive: true,
+      isActive: body.isActive !== false,
+      passwordHash,
     });
 
-    const supplierData = created.toObject();
+    const supplierData = newSupplier.toObject();
     delete supplierData.passwordHash;
 
     return NextResponse.json({ success: true, supplier: supplierData }, { status: 201 });
@@ -90,6 +103,14 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
+    const session = await getAdminSession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized. Admin credentials required.' },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
     const { id, name, contactName, email, phone, website, leadTimeDays, notes, isActive, password } = body;
 
@@ -114,7 +135,6 @@ export async function PUT(req: NextRequest) {
     if (contactName) supplier.contactName = contactName.trim();
     if (email) {
       const cleanEmail = email.trim().toLowerCase();
-      // Check if email taken by another supplier
       const existing = await Supplier.findOne({ email: cleanEmail, _id: { $ne: id } });
       if (existing) {
         return NextResponse.json(
@@ -130,7 +150,6 @@ export async function PUT(req: NextRequest) {
     if (notes !== undefined) supplier.notes = notes.trim();
     if (isActive !== undefined) supplier.isActive = Boolean(isActive);
 
-    // Update password if provided
     if (password && password.trim().length > 0) {
       const plain = password.trim();
       if (plain.length < 6) {
@@ -163,6 +182,14 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    const session = await getAdminSession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized. Admin credentials required.' },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     if (!id) {

@@ -32,8 +32,9 @@ export async function connectToDatabase(): Promise<typeof mongoose | null> {
       await connection();
     }
   } catch {
-    // Non-RSC context or scripts
+    // Non-RSC context, sitemaps, or scripts
   }
+
   if (cached.conn && mongoose.connection.readyState === 1) {
     return cached.conn;
   }
@@ -45,7 +46,7 @@ export async function connectToDatabase(): Promise<typeof mongoose | null> {
   if (!cached.promise) {
     const opts: mongoose.ConnectOptions = {
       bufferCommands: false,
-      maxPoolSize: 10, // Optimal pool size for Atlas Free Tier
+      maxPoolSize: 10,
       minPoolSize: 1,
       maxIdleTimeMS: 30000,
       connectTimeoutMS: 5000,
@@ -67,7 +68,7 @@ export async function connectToDatabase(): Promise<typeof mongoose | null> {
 
   try {
     cached.conn = await cached.promise;
-  } catch (e) {
+  } catch {
     cached.promise = null;
     return null;
   }

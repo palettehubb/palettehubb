@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import { getPayPalOrderDetails, capturePayPalOrder } from '@/lib/paypal';
 import connectToDatabase from '@/lib/db';
 import Order from '@/models/Order';
@@ -8,6 +9,7 @@ import Supplier from '@/models/Supplier';
 import { IOrderItem } from '@/types';
 import { notifyNewOrder, notifyProductUpdated } from '@/lib/realtime';
 import memoryStore from '@/lib/memoryStore';
+import { sendOrderEmails } from '@/lib/email';
 
 export async function POST(req: NextRequest) {
   try {
@@ -50,7 +52,7 @@ export async function POST(req: NextRequest) {
     let captureData = orderDetails;
     let captureId = paypalOrderId;
 
-    // 3. If approved on phone by customer, capture the payment immediately
+    // 3. If approved by customer, capture the payment immediately
     if (orderStatus === 'APPROVED') {
       captureData = await capturePayPalOrder(paypalOrderId);
     }
@@ -80,21 +82,40 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Destination determination: Dubai vs Outside Dubai
+    const country = (customer.country || 'United Arab Emirates').trim().toLowerCase();
+    const state = (customer.state || 'Dubai').trim().toLowerCase();
+    const isDubai =
+      (country.includes('emirates') || country === 'uae' || country === 'united arab emirates') &&
+      state === 'dubai';
+
     const verifiedItems: IOrderItem[] = [];
     let serverSubtotal = 0;
+    let serverDelivery = 0;
+    let serverTax = 0;
 
     for (const item of items || []) {
       const dbProduct = await Product.findOne({
         $or: [{ _id: item.productId }, { slug: item.slug }],
       }).lean();
 
-      const actualPrice = dbProduct ? dbProduct.price : item.price;
+      if (!dbProduct) {
+        return NextResponse.json(
+          { success: false, error: `Product not found: ${item.slug || item.productId}` },
+          { status: 404 }
+        );
+      }
+
+      const actualPrice = Number(dbProduct.price) || 0;
       const qty = Math.max(1, Number(item.quantity) || 1);
       const supplierId = dbProduct?.supplierId || item.supplierId;
 
       let supplierName: string | undefined = undefined;
-      if (supplierId) {
+      if (supplierId && mongoose.isValidObjectId(supplierId)) {
         const supp = await Supplier.findById(supplierId).lean();
+        if (supp) supplierName = supp.name;
+      } else if (supplierId) {
+        const supp = await Supplier.findOne({ $or: [{ name: supplierId }, { email: supplierId }] }).lean();
         if (supp) supplierName = supp.name;
       }
 
@@ -108,6 +129,14 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      const itemDelivery = isDubai
+        ? (Number(dbProduct.deliveryChargeInsideDubai) || 0)
+        : (Number(dbProduct.deliveryChargeOutsideDubai) || 0);
+      serverDelivery += itemDelivery * qty;
+
+      const itemTax = Number(dbProduct.tax) || 0;
+      serverTax += itemTax * qty;
+
       verifiedItems.push({
         productId: dbProduct?._id?.toString() || item.productId,
         name: dbProduct?.name || item.name,
@@ -120,6 +149,9 @@ export async function POST(req: NextRequest) {
         supplierId: supplierId ? String(supplierId) : undefined,
         supplierName,
         itemStatus: 'Pending',
+        deliveryChargeInsideDubai: dbProduct.deliveryChargeInsideDubai || 0,
+        deliveryChargeOutsideDubai: dbProduct.deliveryChargeOutsideDubai || 0,
+        tax: itemTax,
       });
 
       serverSubtotal += actualPrice * qty;
@@ -163,9 +195,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const shipping = 0;
-    const tax = 0;
-    const finalTotal = Math.round((serverSubtotal - discount) * 100) / 100;
+    // Total Amount = Product Price (subtotal - discount) + Delivery Charge + Tax
+    const finalTotal = Math.max(
+      0,
+      Math.round((serverSubtotal - discount + serverDelivery + serverTax) * 100) / 100
+    );
 
     const orderNumber = `PH-${Math.floor(10000 + Math.random() * 90000)}`;
 
@@ -177,16 +211,16 @@ export async function POST(req: NextRequest) {
         phone: customer.phone.trim(),
         street: customer.street.trim(),
         city: customer.city.trim(),
-        state: customer.state.trim(),
-        pincode: customer.pincode.trim(),
-        country: customer.country || 'India',
+        state: customer.state ? customer.state.trim() : 'Dubai',
+        pincode: customer.pincode ? customer.pincode.trim() : '',
+        country: customer.country || 'United Arab Emirates',
       },
       items: verifiedItems,
       subtotal: serverSubtotal,
       discount: Math.round(discount * 100) / 100,
       couponCode: discount > 0 ? couponCode : undefined,
-      shipping,
-      tax,
+      shipping: serverDelivery,
+      tax: serverTax,
       total: finalTotal,
       paymentMethod: 'paypal',
       paymentStatus: 'paid',
@@ -195,7 +229,7 @@ export async function POST(req: NextRequest) {
       orderStatus: 'Paid',
       supplierOrderRef: `SUP-AUTO-${Math.floor(1000 + Math.random() * 9000)}`,
       trackingCarrier: 'Bluedart Express',
-      notes: `Paid via Secure Scan-to-Pay QR Code (PayPal). Capture ID: ${captureId}`,
+      notes: `Paid via PayPal. Capture ID: ${captureId}`,
     });
 
     const plainOrder = typeof newOrder.toObject === 'function' ? newOrder.toObject() : newOrder;
@@ -216,6 +250,13 @@ export async function POST(req: NextRequest) {
       console.warn('Realtime notify warning:', e);
     }
 
+    // Send emails to Admin, Supplier, Customer
+    try {
+      sendOrderEmails(plainOrder).catch((err) => {
+        console.error('Failed to send order emails asynchronously:', err);
+      });
+    } catch {}
+
     return NextResponse.json({
       success: true,
       paid: true,
@@ -228,7 +269,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to verify PayPal payment status',
+        error: error instanceof Error ? error.message : 'Internal error processing payment status',
       },
       { status: 500 }
     );

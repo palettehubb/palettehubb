@@ -4,6 +4,7 @@ import connectToDatabase from '@/lib/db';
 import Order from '@/models/Order';
 import { notifyOrderUpdated } from '@/lib/realtime';
 import memoryStore from '@/lib/memoryStore';
+import { getAdminSession } from '@/lib/auth';
 
 export async function GET(
   req: NextRequest,
@@ -42,6 +43,15 @@ export async function PUT(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Security check: Only verified admin session can update orders
+    const session = await getAdminSession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized. Admin credentials required.' },
+        { status: 401 }
+      );
+    }
+
     const { id } = await context.params;
     const body = await req.json();
 
@@ -101,6 +111,15 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Security check: Only verified admin session can delete orders
+    const session = await getAdminSession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized. Admin credentials required.' },
+        { status: 401 }
+      );
+    }
+
     const { id } = await context.params;
     const db = await connectToDatabase();
 

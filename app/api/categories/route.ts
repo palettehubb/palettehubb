@@ -4,6 +4,7 @@ import connectToDatabase from '@/lib/db';
 import Category from '@/models/Category';
 import { uploadImageToCloudinary, deleteImageFromCloudinary } from '@/lib/cloudinary';
 import memoryStore from '@/lib/memoryStore';
+import { getAdminSession } from '@/lib/auth';
 
 export async function GET() {
   try {
@@ -35,6 +36,15 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    // Security check: Only verified admin session can create categories
+    const session = await getAdminSession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized. Admin credentials required.' },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
     if (!body.name || !body.name.trim()) {
       return NextResponse.json(
@@ -106,6 +116,15 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
+    // Security check: Only verified admin session can edit categories
+    const session = await getAdminSession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized. Admin credentials required.' },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
     const { slug, categoryName, newSubcategory, removeSubcategory, subcategories, name, description, image, isActive } = body;
 
@@ -140,42 +159,48 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    let updated = null;
+    let updatedCat;
 
-    if (newSubcategory && typeof newSubcategory === 'string') {
-      const trimmed = newSubcategory.trim();
-      if (trimmed) {
-        updated = await Category.findOneAndUpdate(
-          query,
-          { $addToSet: { subcategories: trimmed }, $set: updates },
-          { new: true }
-        );
-      }
-    } else if (removeSubcategory && typeof removeSubcategory === 'string') {
-      updated = await Category.findOneAndUpdate(
+    if (subcategories !== undefined) {
+      updates.subcategories = Array.isArray(subcategories)
+        ? subcategories.map((s: string) => String(s).trim()).filter(Boolean)
+        : [];
+      updatedCat = await Category.findOneAndUpdate(query, { $set: updates }, { new: true }).lean();
+    } else if (newSubcategory) {
+      const cleanSub = newSubcategory.trim();
+      updatedCat = await Category.findOneAndUpdate(
         query,
-        { $pull: { subcategories: removeSubcategory }, $set: updates },
+        {
+          $addToSet: { subcategories: cleanSub },
+          $set: updates,
+        },
         { new: true }
-      );
-    } else if (Array.isArray(subcategories)) {
-      updates.subcategories = subcategories.map((s: string) => s.trim()).filter(Boolean);
-      updated = await Category.findOneAndUpdate(query, { $set: updates }, { new: true });
+      ).lean();
+    } else if (removeSubcategory) {
+      const cleanSub = removeSubcategory.trim();
+      updatedCat = await Category.findOneAndUpdate(
+        query,
+        {
+          $pull: { subcategories: cleanSub },
+          $set: updates,
+        },
+        { new: true }
+      ).lean();
     } else {
-      updated = await Category.findOneAndUpdate(query, { $set: updates }, { new: true });
+      updatedCat = await Category.findOneAndUpdate(query, { $set: updates }, { new: true }).lean();
     }
 
-    if (!updated) {
+    if (!updatedCat) {
       return NextResponse.json({ success: false, error: 'Category not found' }, { status: 404 });
     }
 
     try {
-      const plain = JSON.parse(JSON.stringify(updated));
-      memoryStore.categories = memoryStore.categories.map(c =>
-        c.slug === plain.slug || c._id?.toString() === plain._id?.toString() ? plain : c
+      memoryStore.categories = memoryStore.categories.map((c) =>
+        c.slug === updatedCat.slug || c._id?.toString() === updatedCat._id?.toString() ? updatedCat : c
       );
     } catch {}
 
-    return NextResponse.json({ success: true, category: updated });
+    return NextResponse.json({ success: true, category: updatedCat });
   } catch (error: unknown) {
     console.error('Error updating category:', error);
     return NextResponse.json(
@@ -187,6 +212,15 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    // Security check: Only verified admin session can delete categories
+    const session = await getAdminSession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized. Admin credentials required.' },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const slug = searchParams.get('slug');
     const id = searchParams.get('id');

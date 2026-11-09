@@ -5,6 +5,7 @@ import Product from '@/models/Product';
 import { uploadImageToCloudinary, deleteImageFromCloudinary } from '@/lib/cloudinary';
 import { notifyProductUpdated, notifyProductDeleted } from '@/lib/realtime';
 import memoryStore from '@/lib/memoryStore';
+import { getAdminSession } from '@/lib/auth';
 
 function getProductQuery(slug: string) {
   if (mongoose.isValidObjectId(slug)) {
@@ -46,6 +47,15 @@ export async function PUT(
   context: { params: Promise<{ slug: string }> }
 ) {
   try {
+    // Security check: Only verified admin session can edit products
+    const session = await getAdminSession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized. Admin credentials required to modify products.' },
+        { status: 401 }
+      );
+    }
+
     const { slug } = await context.params;
     const body = await req.json();
 
@@ -98,6 +108,15 @@ export async function PUT(
     if (body.stock !== undefined) {
       body.stock = Math.max(0, Number(body.stock) || 0);
     }
+    if (body.deliveryChargeInsideDubai !== undefined) {
+      body.deliveryChargeInsideDubai = Math.max(0, Number(body.deliveryChargeInsideDubai) || 0);
+    }
+    if (body.deliveryChargeOutsideDubai !== undefined) {
+      body.deliveryChargeOutsideDubai = Math.max(0, Number(body.deliveryChargeOutsideDubai) || 0);
+    }
+    if (body.tax !== undefined) {
+      body.tax = Math.max(0, Number(body.tax) || 0);
+    }
 
     if (body.originalPrice && body.price) {
       const orig = Number(body.originalPrice);
@@ -139,6 +158,15 @@ export async function DELETE(
   context: { params: Promise<{ slug: string }> }
 ) {
   try {
+    // Security check: Only verified admin session can delete products
+    const session = await getAdminSession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized. Admin credentials required to delete products.' },
+        { status: 401 }
+      );
+    }
+
     const { slug } = await context.params;
     const db = await connectToDatabase();
 

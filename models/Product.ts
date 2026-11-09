@@ -14,6 +14,9 @@ export interface IProductDoc extends Document {
   price: number;
   originalPrice?: number;
   discountPercent?: number;
+  deliveryChargeInsideDubai?: number;
+  deliveryChargeOutsideDubai?: number;
+  tax?: number;
   images: string[];
   stock: number;
   variants: {
@@ -42,6 +45,9 @@ const ProductSchema = new Schema<IProductDoc>(
     price: { type: Number, required: true, min: 0 },
     originalPrice: { type: Number, default: 0 },
     discountPercent: { type: Number, default: 0 },
+    deliveryChargeInsideDubai: { type: Number, default: 0, min: 0 },
+    deliveryChargeOutsideDubai: { type: Number, default: 0, min: 0 },
+    tax: { type: Number, default: 0, min: 0 },
     images: { type: [String], required: true },
     stock: { type: Number, required: true, default: 0, min: 0 },
     variants: {

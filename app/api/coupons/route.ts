@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Coupon from '@/models/Coupon';
+import { getAdminSession } from '@/lib/auth';
 
 export async function GET() {
   try {
@@ -22,6 +23,15 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    // Security check: Only verified admin session can create coupons
+    const session = await getAdminSession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized. Admin credentials required.' },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
     if (!body.code || body.value === undefined) {
       return NextResponse.json(
@@ -63,6 +73,15 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
+    // Security check: Only verified admin session can update coupons
+    const session = await getAdminSession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized. Admin credentials required.' },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
     if (!body.code) {
       return NextResponse.json({ success: false, error: 'Code is required' }, { status: 400 });
@@ -91,6 +110,15 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    // Security check: Only verified admin session can delete coupons
+    const session = await getAdminSession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized. Admin credentials required.' },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const code = searchParams.get('code')?.toUpperCase();
     if (!code) {

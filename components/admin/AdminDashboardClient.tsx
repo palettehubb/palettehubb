@@ -89,6 +89,9 @@ export default function AdminDashboardClient() {
   const [prodSupplierId, setProdSupplierId] = useState('sup_1');
   const [prodIsFeatured, setProdIsFeatured] = useState(false);
   const [prodSizes, setProdSizes] = useState('S, M, L, XL');
+  const [prodDeliveryInsideDubai, setProdDeliveryInsideDubai] = useState('0');
+  const [prodDeliveryOutsideDubai, setProdDeliveryOutsideDubai] = useState('0');
+  const [prodTax, setProdTax] = useState('0');
   
   // Image handling in product modal: Device Upload vs URL
   const [imageInputMode, setImageInputMode] = useState<'upload' | 'url'>('upload');
@@ -409,6 +412,9 @@ export default function AdminDashboardClient() {
     setProdSupplierId(suppliers[0]?._id || 'sup_1');
     setProdIsFeatured(false);
     setProdSizes('S, M, L, XL');
+    setProdDeliveryInsideDubai('0');
+    setProdDeliveryOutsideDubai('0');
+    setProdTax('0');
     setProductImages([]);
     setColorMappings([]);
     setImageUrlInput('');
@@ -439,6 +445,9 @@ export default function AdminDashboardClient() {
     setProdSupplierId(p.supplierId || 'sup_1');
     setProdIsFeatured(Boolean(p.isFeatured));
     setProdSizes(p.variants?.sizes?.join(', ') || 'S, M, L, XL');
+    setProdDeliveryInsideDubai(p.deliveryChargeInsideDubai !== undefined ? String(p.deliveryChargeInsideDubai) : '0');
+    setProdDeliveryOutsideDubai(p.deliveryChargeOutsideDubai !== undefined ? String(p.deliveryChargeOutsideDubai) : '0');
+    setProdTax(p.tax !== undefined ? String(p.tax) : '0');
     setProductImages(p.images || []);
     if (p.variants?.colorImages && Array.isArray(p.variants.colorImages)) {
       setColorMappings(p.variants.colorImages.map((ci) => ({ color: ci.color || '', image: ci.image || '' })));
@@ -479,6 +488,9 @@ export default function AdminDashboardClient() {
       subcategory: chosenSubcategory,
       price: Number(prodPrice),
       originalPrice: prodOrigPrice ? Number(prodOrigPrice) : undefined,
+      deliveryChargeInsideDubai: Math.max(0, Number(prodDeliveryInsideDubai) || 0),
+      deliveryChargeOutsideDubai: Math.max(0, Number(prodDeliveryOutsideDubai) || 0),
+      tax: Math.max(0, Number(prodTax) || 0),
       description: prodDesc.trim(),
       stock: Number(prodStock) || 0,
       images: imagesToSave,
@@ -1473,6 +1485,11 @@ export default function AdminDashboardClient() {
                                 $ {p.originalPrice.toFixed(2)}
                               </p>
                             )}
+                            <div className="flex flex-col gap-0.5 mt-1 text-[10px] text-neutral-500 font-medium">
+                              <span>Dubai Deliv: ${(p.deliveryChargeInsideDubai ?? 0).toFixed(2)}</span>
+                              <span>Other Deliv: ${(p.deliveryChargeOutsideDubai ?? 0).toFixed(2)}</span>
+                              <span>Tax: ${(p.tax ?? 0).toFixed(2)}</span>
+                            </div>
                           </td>
 
                           {/* LOW WARNING SYSTEM STATUS BADGE */}
@@ -2512,6 +2529,72 @@ export default function AdminDashboardClient() {
                       onChange={(e) => setProdStock(e.target.value)}
                       className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-black"
                     />
+                  </div>
+                </div>
+
+                {/* Delivery Charges & Tax */}
+                <div className="p-4 rounded-2xl bg-neutral-50/80 border border-neutral-200/90 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold uppercase text-[11px] text-neutral-800">
+                      Delivery Charges & Tax Settings *
+                    </label>
+                    <span className="text-[10px] text-neutral-500">Auto-applied at checkout based on destination</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block font-bold uppercase mb-1 text-[11px] text-neutral-700">
+                        Delivery Inside Dubai ($) *
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3.5 top-2.5 text-neutral-500 font-bold text-xs pointer-events-none">$</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          required
+                          value={prodDeliveryInsideDubai}
+                          onChange={(e) => setProdDeliveryInsideDubai(e.target.value)}
+                          placeholder="e.g. 15.00"
+                          className="w-full bg-white border border-neutral-200 rounded-xl pl-7 pr-3 py-2 text-xs font-semibold focus:outline-none focus:border-black"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block font-bold uppercase mb-1 text-[11px] text-neutral-700">
+                        Delivery Outside Dubai ($) *
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3.5 top-2.5 text-neutral-500 font-bold text-xs pointer-events-none">$</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          required
+                          value={prodDeliveryOutsideDubai}
+                          onChange={(e) => setProdDeliveryOutsideDubai(e.target.value)}
+                          placeholder="e.g. 25.00"
+                          className="w-full bg-white border border-neutral-200 rounded-xl pl-7 pr-3 py-2 text-xs font-semibold focus:outline-none focus:border-black"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block font-bold uppercase mb-1 text-[11px] text-neutral-700">
+                        Tax Amount ($) *
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3.5 top-2.5 text-neutral-500 font-bold text-xs pointer-events-none">$</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          required
+                          value={prodTax}
+                          onChange={(e) => setProdTax(e.target.value)}
+                          placeholder="e.g. 5.00"
+                          className="w-full bg-white border border-neutral-200 rounded-xl pl-7 pr-3 py-2 text-xs font-semibold focus:outline-none focus:border-black"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 

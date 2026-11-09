@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -17,7 +17,75 @@ import { useCart } from '@/context/CartContext';
 import { IShippingAddress, IOrder } from '@/types';
 import PayPalButton from '@/components/checkout/PayPalButton';
 
-const ALL_COUNTRIES = [
+export const UAE_STATES = [
+  'Dubai',
+  'Abu Dhabi',
+  'Sharjah',
+  'Ajman',
+  'Ras Al Khaimah',
+  'Fujairah',
+  'Umm Al Quwain',
+];
+
+export const COUNTRY_STATES_MAP: Record<string, string[]> = {
+  'United Arab Emirates': UAE_STATES,
+  'Saudi Arabia': [
+    'Riyadh', 'Makkah', 'Eastern Province', 'Madinah', 'Al-Qassim', 'Asir', 'Tabuk',
+    'Hail', 'Northern Borders', 'Jazan', 'Najran', 'Al-Bahah', 'Al-Jawf'
+  ],
+  'Qatar': [
+    'Doha', 'Al Rayyan', 'Al Wakrah', 'Al Khor', 'Al Daayen', 'Umm Salal', 'Madinat ash Shamal', 'Al Sheehaniya'
+  ],
+  'Kuwait': [
+    'Al Asimah (Capital)', 'Hawalli', 'Farwaniya', 'Ahmadi', 'Jahra', 'Mubarak Al-Kabeer'
+  ],
+  'Oman': [
+    'Muscat', 'Dhofar', 'Musandam', 'Al Buraimi', 'Ad Dakhiliyah', 'Al Batinah North',
+    'Al Batinah South', 'Ash Sharqiyah North', 'Ash Sharqiyah South', 'Ad Dhahirah', 'Al Wusta'
+  ],
+  'Bahrain': [
+    'Capital', 'Muharraq', 'Northern', 'Southern'
+  ],
+  'United States': [
+    'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware',
+    'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky',
+    'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi',
+    'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico',
+    'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania',
+    'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont',
+    'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming', 'District of Columbia'
+  ],
+  'United Kingdom': [
+    'England', 'Scotland', 'Wales', 'Northern Ireland'
+  ],
+  'Canada': [
+    'Alberta', 'British Columbia', 'Manitoba', 'New Brunswick', 'Newfoundland and Labrador',
+    'Nova Scotia', 'Ontario', 'Prince Edward Island', 'Quebec', 'Saskatchewan',
+    'Northwest Territories', 'Nunavut', 'Yukon'
+  ],
+  'India': [
+    'Delhi', 'Maharashtra', 'Karnataka', 'Tamil Nadu', 'Kerala', 'Gujarat', 'Uttar Pradesh',
+    'Andhra Pradesh', 'Telangana', 'West Bengal', 'Punjab', 'Rajasthan', 'Haryana',
+    'Bihar', 'Madhya Pradesh', 'Goa'
+  ],
+  'Australia': [
+    'New South Wales', 'Victoria', 'Queensland', 'Western Australia', 'South Australia',
+    'Tasmania', 'Australian Capital Territory', 'Northern Territory'
+  ],
+  'Germany': [
+    'Bavaria', 'Berlin', 'Baden-Württemberg', 'North Rhine-Westphalia', 'Hesse', 'Hamburg',
+    'Lower Saxony', 'Saxony', 'Rhineland-Palatinate', 'Schleswig-Holstein'
+  ],
+  'France': [
+    'Île-de-France', 'Auvergne-Rhône-Alpes', "Provence-Alpes-Côte d'Azur", 'Nouvelle-Aquitaine',
+    'Occitanie', 'Grand Est', 'Hauts-de-France', 'Brittany', 'Normandy'
+  ]
+};
+
+// Prioritize United Arab Emirates at top of country selector
+const RAW_COUNTRIES = [
+  'United Arab Emirates',
+
   'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda', 'Argentina', 'Armenia',
   'Australia', 'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus',
   'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil',
@@ -41,9 +109,11 @@ const ALL_COUNTRIES = [
   'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland',
   'Syria', 'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Timor-Leste', 'Togo', 'Tonga',
   'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine',
-  'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu',
+  'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu',
   'Vatican City', 'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe'
 ];
+
+export const ALL_COUNTRIES: string[] = Array.from(new Set(RAW_COUNTRIES));
 
 export default function CheckoutClient() {
   const router = useRouter();
@@ -62,10 +132,85 @@ export default function CheckoutClient() {
     phone: '',
     street: '',
     city: '',
-    state: '',
+    state: 'Dubai',
     pincode: '',
-    country: 'United States',
+    country: 'United Arab Emirates',
   });
+
+  const [isCustomState, setIsCustomState] = useState(false);
+  const [customStateInput, setCustomStateInput] = useState('');
+
+  // Determine state list for currently selected country
+  const availableStates = useMemo(() => {
+    return COUNTRY_STATES_MAP[address.country] || [
+      'Capital / Main Region',
+      'Central Region',
+      'Northern Region',
+      'Southern Region',
+      'Eastern Region',
+      'Western Region',
+    ];
+  }, [address.country]);
+
+  // Handle Country selection change
+  const handleCountryChange = (newCountry: string) => {
+    const states = COUNTRY_STATES_MAP[newCountry] || [
+      'Capital / Main Region',
+      'Central Region',
+      'Northern Region',
+      'Southern Region',
+      'Eastern Region',
+      'Western Region',
+    ];
+    const defaultState = newCountry === 'United Arab Emirates' ? 'Dubai' : states[0] || '';
+    setIsCustomState(false);
+    setCustomStateInput('');
+    setAddress((prev) => ({
+      ...prev,
+      country: newCountry,
+      state: defaultState,
+    }));
+  };
+
+  // Handle State selection change
+  const handleStateChange = (newState: string) => {
+    if (newState === '__custom__') {
+      setIsCustomState(true);
+      setCustomStateInput('');
+    } else {
+      setIsCustomState(false);
+      setCustomStateInput('');
+      setAddress((prev) => ({ ...prev, state: newState }));
+    }
+  };
+
+  // Dynamic Destination-based Shipping & Tax Calculation
+  const isDubaiSelected = useMemo(() => {
+    const isUae =
+      address.country.toLowerCase().includes('emirates') ||
+      address.country.toLowerCase() === 'uae' ||
+      address.country.toLowerCase() === 'united arab emirates';
+    return isUae && address.state.trim().toLowerCase() === 'dubai';
+  }, [address.country, address.state]);
+
+  const deliveryCharge = useMemo(() => {
+    return items.reduce((sum, item) => {
+      const charge = isDubaiSelected
+        ? (item.deliveryChargeInsideDubai ?? 0)
+        : (item.deliveryChargeOutsideDubai ?? 0);
+      return sum + charge * item.quantity;
+    }, 0);
+  }, [items, isDubaiSelected]);
+
+  const taxAmount = useMemo(() => {
+    return items.reduce((sum, item) => {
+      return sum + (item.tax ?? 0) * item.quantity;
+    }, 0);
+  }, [items]);
+
+  const calculatedTotal = useMemo(() => {
+    return Math.max(0, subtotal - discount + deliveryCharge + taxAmount);
+  }, [subtotal, discount, deliveryCharge, taxAmount]);
 
   const [agreedToReturnPolicy, setAgreedToReturnPolicy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -258,8 +403,8 @@ export default function CheckoutClient() {
                   <select
                     name="country"
                     value={address.country}
-                    onChange={handleInputChange}
-                    className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 focus:outline-none focus:border-black cursor-pointer"
+                    onChange={(e) => handleCountryChange(e.target.value)}
+                    className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-neutral-900 focus:outline-none focus:border-black cursor-pointer"
                   >
                     {ALL_COUNTRIES.map((c) => (
                       <option key={c} value={c}>
@@ -269,15 +414,15 @@ export default function CheckoutClient() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-neutral-700 uppercase mb-1.5">
-                    Postal / ZIP Code *
+                  <label className="block text-xs font-bold text-neutral-700 uppercase mb-1.5 flex items-center justify-between">
+                    <span>Postal / ZIP Code</span>
+                    <span className="text-[10px] text-neutral-400 font-normal lowercase">(optional)</span>
                   </label>
                   <input
                     type="text"
                     name="pincode"
-                    required
-                    placeholder="e.g. 10001 or 560001"
-                    value={address.pincode}
+                    placeholder="Optional postal / ZIP code"
+                    value={address.pincode || ''}
                     onChange={handleInputChange}
                     className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 focus:outline-none focus:border-black"
                   />
@@ -308,25 +453,57 @@ export default function CheckoutClient() {
                     type="text"
                     name="city"
                     required
-                    placeholder="e.g. New York or Toronto"
+                    placeholder="e.g. Dubai, Abu Dhabi, or New York"
                     value={address.city}
                     onChange={handleInputChange}
                     className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 focus:outline-none focus:border-black"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-neutral-700 uppercase mb-1.5">
-                    State / Province / Region *
-                  </label>
-                  <input
-                    type="text"
-                    name="state"
-                    required
-                    placeholder="e.g. NY, California, or Ontario"
-                    value={address.state}
-                    onChange={handleInputChange}
-                    className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 focus:outline-none focus:border-black"
-                  />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-neutral-700 uppercase">
+                      State / Emirate / Region *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCustomState(!isCustomState);
+                        if (!isCustomState) setCustomStateInput(address.state);
+                      }}
+                      className="text-[10px] text-blue-600 hover:underline font-semibold"
+                    >
+                      {isCustomState ? 'Choose from list' : '+ Type Custom'}
+                    </button>
+                  </div>
+
+                  {isCustomState ? (
+                    <input
+                      type="text"
+                      name="state"
+                      required
+                      placeholder="Type state, province or emirate name"
+                      value={customStateInput}
+                      onChange={(e) => {
+                        setCustomStateInput(e.target.value);
+                        setAddress((prev) => ({ ...prev, state: e.target.value }));
+                      }}
+                      className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-neutral-900 focus:outline-none focus:border-black"
+                    />
+                  ) : (
+                    <select
+                      name="state"
+                      value={address.state}
+                      onChange={(e) => handleStateChange(e.target.value)}
+                      className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-neutral-900 focus:outline-none focus:border-black cursor-pointer"
+                    >
+                      {availableStates.map((st) => (
+                        <option key={st} value={st}>
+                          {st}{address.country === 'United Arab Emirates' && st === 'Dubai' ? ' — (Inside Dubai Delivery)' : ''}
+                        </option>
+                      ))}
+                      <option value="__custom__">+ Enter custom state / region...</option>
+                    </select>
+                  )}
                 </div>
               </div>
             </div>
@@ -392,9 +569,9 @@ export default function CheckoutClient() {
               </div>
 
               {/* Breakdown */}
-              <div className="border-t border-neutral-100 pt-4 space-y-2 text-xs text-neutral-600">
+              <div className="border-t border-neutral-100 pt-4 space-y-2.5 text-xs text-neutral-600">
                 <div className="flex justify-between">
-                  <span>Subtotal</span>
+                  <span>Subtotal ({items.length} items)</span>
                   <span className="font-semibold text-neutral-900">
                     ${subtotal.toFixed(2)}
                   </span>
@@ -410,11 +587,37 @@ export default function CheckoutClient() {
                   </div>
                 )}
 
+                <div className="flex justify-between items-center">
+                  <div className="flex flex-col">
+                    <span className="font-medium text-neutral-800">Delivery Charge</span>
+                    <span className="text-[10px] text-neutral-500">
+                      {isDubaiSelected
+                        ? 'Inside Dubai rate applied'
+                        : `Outside Dubai / Standard delivery (${address.country})`}
+                    </span>
+                  </div>
+                  <span className="font-semibold text-neutral-900">
+                    ${deliveryCharge.toFixed(2)}
+                  </span>
+                </div>
 
+                <div className="flex justify-between items-center">
+                  <span className="font-medium text-neutral-800">Tax</span>
+                  <span className="font-semibold text-neutral-900">
+                    ${taxAmount.toFixed(2)}
+                  </span>
+                </div>
 
                 <div className="border-t border-neutral-200 pt-3 flex justify-between text-sm sm:text-base font-black text-neutral-900">
-                  <span>Total Amount</span>
-                  <span>${total.toFixed(2)} USD</span>
+                  <div className="flex flex-col">
+                    <span>Total Amount</span>
+                    <span className="text-[10px] font-normal text-neutral-400">
+                      Price (${(subtotal - discount).toFixed(2)}) + Delivery (${deliveryCharge.toFixed(2)}) + Tax (${taxAmount.toFixed(2)})
+                    </span>
+                  </div>
+                  <span className="text-base sm:text-lg text-[#003087]">
+                    ${calculatedTotal.toFixed(2)} USD
+                  </span>
                 </div>
               </div>
 
@@ -459,7 +662,7 @@ export default function CheckoutClient() {
                   customer={address}
                   items={items}
                   couponCode={appliedCoupon?.code}
-                  totalINR={total}
+                  totalINR={calculatedTotal}
                   disabled={!agreedToReturnPolicy}
                   onSuccess={(confirmedOrder) => {
                     handleOrderSuccess(confirmedOrder);

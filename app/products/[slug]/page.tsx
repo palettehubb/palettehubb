@@ -33,14 +33,14 @@ const getProductData = cache(async (slug: string) => {
           slug: { $ne: product?.slug },
           isAvailable: true,
         })
-          .select('name slug price originalPrice images rating reviewsCount isFeatured')
+          .select('name slug price originalPrice images rating reviewsCount isFeatured deliveryChargeInsideDubai deliveryChargeOutsideDubai tax')
           .limit(4)
           .lean();
         relatedProducts = JSON.parse(JSON.stringify(rel));
       }
     }
   } catch (e) {
-    console.error('Error fetching cached product data:', e);
+    console.error('Error fetching product data:', e);
   }
 
   if (!product) {
@@ -104,8 +104,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     },
   };
 }
-
-export const instant = false;
 
 export default async function ProductDetailPage({ params }: PageProps) {
   const { slug } = await params;

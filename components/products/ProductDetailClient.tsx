@@ -307,8 +307,18 @@ export default function ProductDetailClient({
                     ${product.originalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 )}
-                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
-                  Tax Included
+              </div>
+
+              {/* Delivery & Tax Notice */}
+              <div className="flex flex-wrap items-center gap-2 mb-4 text-[11px] font-semibold text-neutral-600">
+                <span className="bg-neutral-100 px-2.5 py-1 rounded-md border border-neutral-200">
+                  🚚 Inside Dubai Delivery: <strong className="text-neutral-900">${(product.deliveryChargeInsideDubai ?? 0).toFixed(2)}</strong>
+                </span>
+                <span className="bg-neutral-100 px-2.5 py-1 rounded-md border border-neutral-200">
+                  🌍 Outside Dubai: <strong className="text-neutral-900">${(product.deliveryChargeOutsideDubai ?? 0).toFixed(2)}</strong>
+                </span>
+                <span className="bg-neutral-100 px-2.5 py-1 rounded-md border border-neutral-200">
+                  🏛️ Tax: <strong className="text-neutral-900">${(product.tax ?? 0).toFixed(2)}</strong>
                 </span>
               </div>
 

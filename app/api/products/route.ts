@@ -4,6 +4,11 @@ import Product from '@/models/Product';
 import { uploadImageToCloudinary } from '@/lib/cloudinary';
 import { notifyProductCreated } from '@/lib/realtime';
 import memoryStore from '@/lib/memoryStore';
+import { getAdminSession } from '@/lib/auth';
+
+function escapeRegex(text: string): string {
+  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -29,19 +34,19 @@ export async function GET(req: NextRequest) {
     const query: any = { isAvailable: true };
 
     if (category && category !== 'all') {
-      query.category = { $regex: new RegExp(`^${category}$`, 'i') };
+      query.category = { $regex: new RegExp(`^${escapeRegex(category)}$`, 'i') };
     }
 
     if (subcategory && subcategory !== 'all') {
-      query.subcategory = { $regex: new RegExp(`^${subcategory}$`, 'i') };
+      query.subcategory = { $regex: new RegExp(`^${escapeRegex(subcategory)}$`, 'i') };
     }
 
     if (search && search.trim()) {
-      const s = search.trim();
+      const safeSearch = escapeRegex(search.trim());
       query.$or = [
-        { name: { $regex: s, $options: 'i' } },
-        { description: { $regex: s, $options: 'i' } },
-        { tags: { $in: [new RegExp(s, 'i')] } },
+        { name: { $regex: safeSearch, $options: 'i' } },
+        { description: { $regex: safeSearch, $options: 'i' } },
+        { tags: { $in: [new RegExp(safeSearch, 'i')] } },
       ];
     }
 
@@ -98,6 +103,15 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    // Security check: Only verified admin session can create products
+    const session = await getAdminSession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized. Admin credentials required to add products.' },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
 
     if (!body.name || body.price === undefined || !body.category) {
@@ -115,6 +129,10 @@ export async function POST(req: NextRequest) {
     } else if (body.discountPercent) {
       discountPercent = Number(body.discountPercent);
     }
+
+    const deliveryChargeInsideDubai = Math.max(0, Number(body.deliveryChargeInsideDubai) || 0);
+    const deliveryChargeOutsideDubai = Math.max(0, Number(body.deliveryChargeOutsideDubai) || 0);
+    const tax = Math.max(0, Number(body.tax) || 0);
 
     // Handle Cloudinary upload for any base64 image strings
     const processedImages: string[] = [];
@@ -174,6 +192,9 @@ export async function POST(req: NextRequest) {
       price,
       originalPrice: originalPrice || 0,
       discountPercent,
+      deliveryChargeInsideDubai,
+      deliveryChargeOutsideDubai,
+      tax,
       images: processedImages,
       stock: body.stock !== undefined ? Math.max(0, Number(body.stock)) : 10,
       variants,

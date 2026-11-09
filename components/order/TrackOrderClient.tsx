@@ -365,9 +365,9 @@ export default function TrackOrderClient() {
                   <br />
                   {order.customer.street}
                   <br />
-                  {order.customer.city}, {order.customer.state} {order.customer.pincode}
+                  {order.customer.city}, {order.customer.state}{order.customer.pincode ? ` ${order.customer.pincode}` : ''}
                   <br />
-                  <span className="font-bold text-black">{order.customer.country || 'United States'}</span>
+                  <span className="font-bold text-black">{order.customer.country || 'United Arab Emirates'}</span>
                   <br />
                   Phone: {order.customer.phone}
                   <br />

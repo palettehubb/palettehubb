@@ -241,7 +241,10 @@ export default function CartDrawer() {
 
 
                 <div className="pt-2 border-t border-neutral-200 flex justify-between text-sm font-extrabold text-neutral-900">
-                  <span>Final Total</span>
+                  <div className="flex flex-col">
+                    <span>Estimated Total</span>
+                    <span className="text-[10px] font-normal text-neutral-400">Delivery & Tax calculated at checkout</span>
+                  </div>
                   <span>${total.toFixed(2)}</span>
                 </div>
               </div>

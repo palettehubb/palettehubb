@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { ICartItem } from '@/types';
+import { ICartItem, ICoupon } from '@/types';
 
 interface CartContextType {
   items: ICartItem[];
@@ -16,6 +16,9 @@ interface CartContextType {
       originalPrice?: number;
       images: string[];
       stock: number;
+      deliveryChargeInsideDubai?: number;
+      deliveryChargeOutsideDubai?: number;
+      tax?: number;
     },
     quantity?: number,
     size?: string,
@@ -23,9 +26,14 @@ interface CartContextType {
     customImage?: string
   ) => void;
   removeItem: (productId: string, size?: string, color?: string) => void;
-  updateQuantity: (productId: string, quantity: number, size?: string, color?: string) => void;
+  updateQuantity: (
+    productId: string,
+    quantity: number,
+    size?: string,
+    color?: string
+  ) => void;
   clearCart: () => void;
-  appliedCoupon: { code: string; discountType: string; value: number; calculatedDiscount: number } | null;
+  appliedCoupon: ICoupon | null;
   applyCoupon: (code: string) => Promise<{ success: boolean; message: string }>;
   removeCoupon: () => void;
   subtotal: number;
@@ -40,52 +48,41 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<ICartItem[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
-  const [appliedCoupon, setAppliedCoupon] = useState<{
-    code: string;
-    discountType: string;
-    value: number;
-    calculatedDiscount: number;
-  } | null>(null);
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<ICoupon | null>(null);
+  const [mounted, setMounted] = useState<boolean>(false);
 
   // Load from localStorage on mount
   useEffect(() => {
     try {
-      const savedCart = localStorage.getItem('palette_hubb_cart');
+      const savedCart = localStorage.getItem('palette_cart');
+      const savedCoupon = localStorage.getItem('palette_coupon');
       if (savedCart) {
-        const parsedCart = JSON.parse(savedCart);
-        queueMicrotask(() => setItems(parsedCart));
+        setItems(JSON.parse(savedCart));
       }
-      const savedCoupon = localStorage.getItem('palette_hubb_coupon');
       if (savedCoupon) {
-        const parsedCoupon = JSON.parse(savedCoupon);
-        queueMicrotask(() => setAppliedCoupon(parsedCoupon));
+        setAppliedCoupon(JSON.parse(savedCoupon));
       }
-    } catch (e) {
-      console.error('Failed to parse cart storage', e);
+    } catch {
+      // LocalStorage errors ignored in SSR/Private mode
     }
+    setMounted(true);
   }, []);
 
-  // Sync to localStorage
+  // Save to localStorage
   useEffect(() => {
+    if (!mounted) return;
     try {
-      localStorage.setItem('palette_hubb_cart', JSON.stringify(items));
-    } catch (e) {
-      console.error('Failed to save cart storage', e);
-    }
-  }, [items]);
-
-  useEffect(() => {
-    try {
+      localStorage.setItem('palette_cart', JSON.stringify(items));
       if (appliedCoupon) {
-        localStorage.setItem('palette_hubb_coupon', JSON.stringify(appliedCoupon));
+        localStorage.setItem('palette_coupon', JSON.stringify(appliedCoupon));
       } else {
-        localStorage.removeItem('palette_hubb_coupon');
+        localStorage.removeItem('palette_coupon');
       }
-    } catch (e) {
-      console.error('Failed to save coupon storage', e);
+    } catch {
+      // LocalStorage errors ignored
     }
-  }, [appliedCoupon]);
+  }, [items, appliedCoupon, mounted]);
 
   const addItem = (
     product: {
@@ -96,6 +93,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       originalPrice?: number;
       images: string[];
       stock: number;
+      deliveryChargeInsideDubai?: number;
+      deliveryChargeOutsideDubai?: number;
+      tax?: number;
     },
     quantity = 1,
     size?: string,
@@ -120,6 +120,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         if (customImage) {
           updated[existingIndex].image = customImage;
         }
+        if (product.deliveryChargeInsideDubai !== undefined) {
+          updated[existingIndex].deliveryChargeInsideDubai = product.deliveryChargeInsideDubai;
+        }
+        if (product.deliveryChargeOutsideDubai !== undefined) {
+          updated[existingIndex].deliveryChargeOutsideDubai = product.deliveryChargeOutsideDubai;
+        }
+        if (product.tax !== undefined) {
+          updated[existingIndex].tax = product.tax;
+        }
         return updated;
       }
 
@@ -138,6 +147,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           size,
           color,
           stock: product.stock,
+          deliveryChargeInsideDubai: product.deliveryChargeInsideDubai || 0,
+          deliveryChargeOutsideDubai: product.deliveryChargeOutsideDubai || 0,
+          tax: product.tax || 0,
         },
       ];
     });
@@ -185,9 +197,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItems([]);
     setAppliedCoupon(null);
     try {
-      localStorage.removeItem('palette_hubb_cart');
-      localStorage.removeItem('palette_hubb_coupon');
-    } catch {}
+      localStorage.removeItem('palette_cart');
+      localStorage.removeItem('palette_coupon');
+    } catch {
+      // ignore
+    }
   };
 
   const applyCoupon = async (code: string): Promise<{ success: boolean; message: string }> => {
@@ -195,34 +209,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch('/api/coupons/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code, cartTotal: subtotal }),
       });
       const data = await res.json();
       if (data.success && data.coupon) {
-        const rawSubtotal = items.reduce(
-          (sum, i) => sum + i.price * i.quantity,
-          0
-        );
-
-        let calcDiscount = 0;
-        if (data.coupon.discountType === 'percentage') {
-          calcDiscount = (rawSubtotal * data.coupon.value) / 100;
-        } else {
-          calcDiscount = data.coupon.value;
-        }
-        calcDiscount = Math.min(calcDiscount, rawSubtotal);
-
-        setAppliedCoupon({
-          code: data.coupon.code,
-          discountType: data.coupon.discountType,
-          value: data.coupon.value,
-          calculatedDiscount: calcDiscount,
-        });
-        return { success: true, message: `Coupon ${data.coupon.code} applied successfully!` };
+        setAppliedCoupon(data.coupon);
+        return { success: true, message: data.message || 'Coupon applied successfully!' };
       }
       return { success: false, message: data.error || 'Invalid coupon code' };
-    } catch (e: unknown) {
-      return { success: false, message: e instanceof Error ? e.message : 'Coupon validation failed' };
+    } catch {
+      return { success: false, message: 'Could not validate coupon' };
     }
   };
 
@@ -245,7 +241,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     discount = Math.min(discount, subtotal);
   }
 
-  // No extra shipping or tax charges — strictly product price
+  // Base shipping & tax at cart level (finalized at checkout based on address)
   const shipping = 0;
   const tax = 0;
   const total = Math.max(0, subtotal - discount);

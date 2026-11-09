@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import { capturePayPalOrder } from '@/lib/paypal';
 import connectToDatabase from '@/lib/db';
 import Order from '@/models/Order';
@@ -6,7 +7,7 @@ import Product from '@/models/Product';
 import Coupon from '@/models/Coupon';
 import Supplier from '@/models/Supplier';
 import { IOrderItem } from '@/types';
-import { notifyNewOrder, notifyProductUpdated } from '@/lib/realtime';
+import { notifyNewOrder } from '@/lib/realtime';
 import memoryStore from '@/lib/memoryStore';
 import { sendOrderEmails } from '@/lib/email';
 
@@ -77,21 +78,40 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Determine destination: Inside Dubai vs Outside Dubai
+    const country = (customer.country || 'United Arab Emirates').trim().toLowerCase();
+    const state = (customer.state || 'Dubai').trim().toLowerCase();
+    const isDubai =
+      (country.includes('emirates') || country === 'uae' || country === 'united arab emirates') &&
+      state === 'dubai';
+
     const verifiedItems: IOrderItem[] = [];
     let serverSubtotal = 0;
+    let serverDelivery = 0;
+    let serverTax = 0;
 
     for (const item of items) {
       const dbProduct = await Product.findOne({
         $or: [{ _id: item.productId }, { slug: item.slug }],
       }).lean();
 
-      const actualPrice = dbProduct ? dbProduct.price : item.price;
+      if (!dbProduct) {
+        return NextResponse.json(
+          { success: false, error: `Product not found in catalog: ${item.slug || item.productId}` },
+          { status: 404 }
+        );
+      }
+
+      const actualPrice = Number(dbProduct.price) || 0;
       const qty = Math.max(1, Number(item.quantity) || 1);
       const supplierId = dbProduct?.supplierId || item.supplierId;
 
       let supplierName: string | undefined = undefined;
-      if (supplierId) {
+      if (supplierId && mongoose.isValidObjectId(supplierId)) {
         const supp = await Supplier.findById(supplierId).lean();
+        if (supp) supplierName = supp.name;
+      } else if (supplierId) {
+        const supp = await Supplier.findOne({ $or: [{ name: supplierId }, { email: supplierId }] }).lean();
         if (supp) supplierName = supp.name;
       }
 
@@ -105,6 +125,14 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      const itemDelivery = isDubai
+        ? (Number(dbProduct.deliveryChargeInsideDubai) || 0)
+        : (Number(dbProduct.deliveryChargeOutsideDubai) || 0);
+      serverDelivery += itemDelivery * qty;
+
+      const itemTax = Number(dbProduct.tax) || 0;
+      serverTax += itemTax * qty;
+
       verifiedItems.push({
         productId: dbProduct?._id?.toString() || item.productId,
         name: dbProduct?.name || item.name,
@@ -117,6 +145,9 @@ export async function POST(req: NextRequest) {
         supplierId: supplierId ? String(supplierId) : undefined,
         supplierName,
         itemStatus: 'Pending',
+        deliveryChargeInsideDubai: dbProduct.deliveryChargeInsideDubai || 0,
+        deliveryChargeOutsideDubai: dbProduct.deliveryChargeOutsideDubai || 0,
+        tax: itemTax,
       });
 
       serverSubtotal += actualPrice * qty;
@@ -156,9 +187,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const shipping = 0;
-    const tax = 0;
-    const finalTotal = Math.round((serverSubtotal - discount) * 100) / 100;
+    // Total Amount = Product Price (subtotal - discount) + Delivery Charge + Tax
+    const finalTotal = Math.max(
+      0,
+      Math.round((serverSubtotal - discount + serverDelivery + serverTax) * 100) / 100
+    );
 
     const orderNumber = `PH-${Math.floor(10000 + Math.random() * 90000)}`;
 
@@ -170,16 +203,16 @@ export async function POST(req: NextRequest) {
         phone: customer.phone.trim(),
         street: customer.street.trim(),
         city: customer.city.trim(),
-        state: customer.state.trim(),
-        pincode: customer.pincode.trim(),
-        country: customer.country || 'India',
+        state: customer.state ? customer.state.trim() : 'Dubai',
+        pincode: customer.pincode ? customer.pincode.trim() : '',
+        country: customer.country || 'United Arab Emirates',
       },
       items: verifiedItems,
       subtotal: serverSubtotal,
       discount: Math.round(discount * 100) / 100,
       couponCode: discount > 0 ? couponCode : undefined,
-      shipping,
-      tax,
+      shipping: serverDelivery,
+      tax: serverTax,
       total: finalTotal,
       paymentMethod: 'paypal',
       paymentStatus: 'paid',
@@ -193,38 +226,30 @@ export async function POST(req: NextRequest) {
 
     // Notify connected admin and supplier dashboards in real time
     try {
-      const plainOrder = typeof newOrder.toObject === 'function' ? newOrder.toObject() : newOrder;
-      notifyNewOrder(plainOrder);
-      memoryStore.orders = [plainOrder, ...memoryStore.orders.filter((o) => o._id !== plainOrder._id)];
-      for (const it of verifiedItems) {
-        const prod = memoryStore.products.find((p) => p.slug === it.slug || p._id === it.productId);
-        if (prod) {
-          prod.stock = Math.max(0, (prod.stock ?? 0) - it.quantity);
-          prod.salesCount = (prod.salesCount || 0) + it.quantity;
-          notifyProductUpdated(prod);
-        }
-      }
+      const orderPlain = JSON.parse(JSON.stringify(newOrder));
+      notifyNewOrder(orderPlain);
+      memoryStore.orders = [orderPlain, ...memoryStore.orders];
+    } catch {}
 
-      // Asynchronously trigger customer, supplier, and admin email dispatch
-      sendOrderEmails(plainOrder).catch((err) => {
-        console.error('Async order email dispatch error:', err);
+    // Send instant customer confirmation email and supplier alerts
+    try {
+      sendOrderEmails(newOrder).catch((err) => {
+        console.error('Failed to send order emails asynchronously:', err);
       });
-    } catch (e) {
-      console.warn('Realtime notify warning:', e);
-    }
+    } catch {}
 
     return NextResponse.json({
       success: true,
-      orderNumber: newOrder.orderNumber,
+      orderNumber,
       order: newOrder,
       captureId,
     });
   } catch (error: unknown) {
-    console.error('Error capturing PayPal payment:', error);
+    console.error('Error capturing PayPal order:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to process PayPal order',
+        error: error instanceof Error ? error.message : 'Failed to finalize verified PayPal order',
       },
       { status: 500 }
     );

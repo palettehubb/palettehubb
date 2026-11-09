@@ -4,6 +4,7 @@ import { IOrder } from '@/types';
 import connectToDatabase from '@/lib/db';
 import Supplier from '@/models/Supplier';
 import Product from '@/models/Product';
+import { SITE_URL } from '@/lib/seo';
 
 const GMAIL_USER = process.env.GMAIL_USER || 'palettehubb@gmail.com';
 const GMAIL_PASS = process.env.GMAIL_APP_PASSWORD || 'ixvlpbzudsclaydm';
@@ -31,11 +32,20 @@ function getTransporter(): Transporter {
  * Sends order notification emails to:
  * 1. Admin (palettehubb@gmail.com)
  * 2. Assigned Supplier(s) - each supplier receives ONLY their assigned products!
- * 3. Customer (receipt)
+ * 3. Customer (order confirmation & receipt)
  *
- * Runs asynchronously and fails gracefully without blocking the checkout flow.
+ * Each email dispatch is fully isolated so that a single failure (e.g. invalid supplier address)
+ * NEVER prevents customer or admin notifications from arriving.
  */
-export async function sendOrderEmails(order: IOrder): Promise<void> {
+export async function sendOrderEmails(order: IOrder): Promise<{
+  adminSent: boolean;
+  customerSent: boolean;
+  suppliersSentCount: number;
+}> {
+  let adminSent = false;
+  let customerSent = false;
+  let suppliersSentCount = 0;
+
   try {
     const transporter = getTransporter();
     await connectToDatabase();
@@ -74,24 +84,32 @@ export async function sendOrderEmails(order: IOrder): Promise<void> {
     const supplierEmailMap = new Map<string, { email: string; name: string }>();
     if (supplierIds.size > 0) {
       try {
-        const validIds = Array.from(supplierIds).filter((id) => mongoose.isValidObjectId(id));
+        const idArray = Array.from(supplierIds);
+        const validObjectIds = idArray.filter((id) => mongoose.isValidObjectId(id));
         const suppliers = await Supplier.find({
           $or: [
-            ...(validIds.length > 0 ? [{ _id: { $in: validIds } }] : []),
-            { email: { $in: Array.from(supplierIds) } },
+            ...(validObjectIds.length > 0 ? [{ _id: { $in: validObjectIds } }] : []),
+            { email: { $in: idArray } },
+            { name: { $in: idArray } },
           ],
         }).lean();
 
         for (const s of suppliers) {
-          supplierEmailMap.set(s._id.toString(), { email: s.email, name: s.name });
-          if (s.email) {
-            supplierEmailMap.set(s.email, { email: s.email, name: s.name });
-          }
+          const sId = s._id.toString();
+          const info = { email: s.email, name: s.name };
+          supplierEmailMap.set(sId, info);
+          if (s.email) supplierEmailMap.set(s.email, info);
+          if (s.name) supplierEmailMap.set(s.name, info);
         }
       } catch (err) {
-        console.error('Error fetching suppliers for email dispatch:', err);
+        console.error('[Email Dispatch] Error fetching suppliers:', err);
       }
     }
+
+    const postalDisplay = order.customer.pincode && order.customer.pincode.trim()
+      ? ` ${order.customer.pincode.trim()}`
+      : '';
+    const fullAddress = `${order.customer.street}, ${order.customer.city}, ${order.customer.state}${postalDisplay}, ${order.customer.country}`;
 
     const itemsHtml = order.items
       .map(
@@ -101,6 +119,7 @@ export async function sendOrderEmails(order: IOrder): Promise<void> {
             <strong style="color: #111;">${it.name}</strong><br/>
             <span style="font-size: 12px; color: #666;">
               ${it.size ? `Size: ${it.size} | ` : ''}${it.color ? `Color: ${it.color} | ` : ''}Qty: ${it.quantity}
+              ${it.supplierName ? `<br/><span style="color: #0070ba;">Supplier: ${it.supplierName}</span>` : ''}
             </span>
           </td>
           <td style="padding: 10px 0; text-align: right; font-weight: bold; color: #111;">
@@ -111,154 +130,205 @@ export async function sendOrderEmails(order: IOrder): Promise<void> {
       .join('');
 
     // --- EMAIL 1: NOTIFICATION TO ADMIN ---
-    const adminHtml = `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 24px; color: #1a1a1a;">
-        <div style="border-bottom: 2px solid #000; padding-bottom: 16px; margin-bottom: 20px;">
-          <h1 style="font-size: 20px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1px;">Palette Hubb</h1>
-          <p style="font-size: 13px; color: #0070ba; font-weight: bold; margin: 4px 0 0 0;">New Verified Order: #${order.orderNumber}</p>
-        </div>
-
-        <div style="background: #f8fafc; border-radius: 12px; padding: 16px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
-          <p style="margin: 0 0 6px 0; font-size: 13px;"><strong>Customer:</strong> ${order.customer.fullName}</p>
-          <p style="margin: 0 0 6px 0; font-size: 13px;"><strong>Email:</strong> ${order.customer.email}</p>
-          <p style="margin: 0 0 6px 0; font-size: 13px;"><strong>Phone:</strong> ${order.customer.phone}</p>
-          <p style="margin: 0 0 6px 0; font-size: 13px;"><strong>Shipping Address:</strong> ${order.customer.street}, ${order.customer.city}, ${order.customer.state} ${order.customer.pincode}, ${order.customer.country}</p>
-          <p style="margin: 0; font-size: 13px;"><strong>Payment Method:</strong> ${order.paymentMethod.toUpperCase()} (Status: ${order.paymentStatus})</p>
-        </div>
-
-        <h3 style="font-size: 14px; text-transform: uppercase; margin: 0 0 10px 0; color: #555;">Ordered Items</h3>
-        <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px;">
-          ${itemsHtml}
-        </table>
-
-        <div style="border-top: 2px solid #111; padding-top: 12px; margin-top: 10px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px;">
-            <span>Subtotal:</span>
-            <span>$${order.subtotal.toFixed(2)}</span>
-          </div>
-          ${order.discount ? `<div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px; color: #16a34a;"><span>Discount:</span><span>-$${order.discount.toFixed(2)}</span></div>` : ''}
-          <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px;">
-            <span>Shipping:</span>
-            <span>${order.shipping === 0 ? 'FREE' : `$${order.shipping.toFixed(2)}`}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 900; margin-top: 8px;">
-            <span>Total Paid (USD):</span>
-            <span style="color: #0070ba;">$${order.total.toFixed(2)}</span>
-          </div>
-        </div>
-
-        <div style="margin-top: 24px; text-align: center;">
-          <a href="https://palettehubb.com/admin" style="display: inline-block; background: #000; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: bold;">
-            Open Admin Dashboard
-          </a>
-        </div>
-      </div>
-    `;
-
-    // Send admin notification
-    await transporter.sendMail({
-      from: `"Palette Hubb Orders" <${GMAIL_USER}>`,
-      to: GMAIL_USER,
-      subject: `🔔 New Order #${order.orderNumber} - $${order.total.toFixed(2)} USD (${order.customer.fullName})`,
-      html: adminHtml,
-    });
-
-    // --- EMAIL 2: NOTIFICATIONS TO ASSIGNED SUPPLIERS ---
-    for (const [suppId, suppItems] of supplierItemsMap.entries()) {
-      const suppInfo = supplierEmailMap.get(suppId);
-      if (!suppInfo || !suppInfo.email) continue;
-
-      const supplierLinesHtml = suppItems
-        .map(
-          (it) => `
-          <tr style="border-bottom: 1px solid #eeeeee;">
-            <td style="padding: 10px 0;">
-              <strong>${it.name}</strong><br/>
-              <span style="font-size: 12px; color: #666;">
-                ${it.size ? `Size: ${it.size} | ` : ''}${it.color ? `Color: ${it.color} | ` : ''}Quantity: <b>${it.quantity}</b>
-              </span>
-            </td>
-          </tr>`
-        )
-        .join('');
-
-      const suppHtml = `
+    try {
+      const adminHtml = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 24px; color: #1a1a1a;">
-          <h2 style="font-size: 18px; font-weight: 900; margin: 0 0 4px 0;">Fulfillment Dispatch Request</h2>
-          <p style="font-size: 13px; color: #666; margin: 0 0 20px 0;">Order Ref: <strong>#${order.orderNumber}</strong> (${order.supplierOrderRef || 'SUP-DIRECT'})</p>
-
-          <p style="font-size: 13px; line-height: 1.5;">Hello <strong>${suppInfo.name}</strong>,<br/>A new paid order has been assigned to your dropshipping facility. Please prepare the items below for dispatch:</p>
-
-          <div style="background: #f8fafc; border-radius: 12px; padding: 14px; margin: 16px 0; border: 1px solid #e2e8f0; font-size: 13px;">
-            <strong style="display: block; margin-bottom: 6px; color: #333;">Ship To:</strong>
-            ${order.customer.fullName}<br/>
-            ${order.customer.street}<br/>
-            ${order.customer.city}, ${order.customer.state} ${order.customer.pincode}<br/>
-            ${order.customer.country}<br/>
-            Phone: ${order.customer.phone}
+          <div style="border-bottom: 2px solid #000; padding-bottom: 16px; margin-bottom: 20px;">
+            <h1 style="font-size: 20px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1px;">Palette Hubb</h1>
+            <p style="font-size: 13px; color: #0070ba; font-weight: bold; margin: 4px 0 0 0;">New Verified Order: #${order.orderNumber}</p>
           </div>
 
-          <h3 style="font-size: 13px; text-transform: uppercase; margin: 16px 0 8px 0; color: #555;">Assigned Items to Pack</h3>
-          <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-            ${supplierLinesHtml}
-          </table>
-
-          <div style="margin-top: 24px; text-align: center;">
-            <a href="https://palettehubb.com/supplier-dashboard" style="display: inline-block; background: #0070ba; color: #fff; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: bold;">
-              Open Supplier Portal
-            </a>
+          <div style="background: #f8fafc; border-radius: 12px; padding: 16px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+            <p style="margin: 0 0 6px 0; font-size: 13px;"><strong>Customer:</strong> ${order.customer.fullName}</p>
+            <p style="margin: 0 0 6px 0; font-size: 13px;"><strong>Email:</strong> ${order.customer.email}</p>
+            <p style="margin: 0 0 6px 0; font-size: 13px;"><strong>Phone:</strong> ${order.customer.phone}</p>
+            <p style="margin: 0 0 6px 0; font-size: 13px;"><strong>Shipping Address:</strong> ${fullAddress}</p>
+            <p style="margin: 0; font-size: 13px;"><strong>Payment Method:</strong> ${order.paymentMethod.toUpperCase()} (Status: ${order.paymentStatus})</p>
           </div>
-        </div>
-      `;
 
-      await transporter.sendMail({
-        from: `"Palette Hubb Dropship" <${GMAIL_USER}>`,
-        to: suppInfo.email,
-        subject: `📦 Dropship Dispatch Request #${order.orderNumber} - Palette Hubb`,
-        html: suppHtml,
-      });
-    }
-
-    // --- EMAIL 3: RECEIPT TO CUSTOMER ---
-    if (order.customer.email) {
-      const customerHtml = `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 24px; color: #1a1a1a;">
-          <h1 style="font-size: 20px; font-weight: 900; margin: 0; text-transform: uppercase;">Palette Hubb</h1>
-          <p style="font-size: 14px; color: #16a34a; font-weight: bold; margin: 4px 0 20px 0;">✓ Order Confirmed #${order.orderNumber}</p>
-
-          <p style="font-size: 13px; line-height: 1.6;">Thank you for your order, <strong>${order.customer.fullName}</strong>! We've received your payment and our verified suppliers are preparing your package.</p>
-
-          <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin: 20px 0;">
+          <h3 style="font-size: 14px; text-transform: uppercase; margin: 0 0 10px 0; color: #555;">Ordered Items</h3>
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px;">
             ${itemsHtml}
           </table>
 
           <div style="border-top: 2px solid #111; padding-top: 12px; margin-top: 10px;">
-            <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 900;">
-              <span>Total Paid:</span>
-              <span style="color: #0070ba;">$${order.total.toFixed(2)} USD</span>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px;">
+              <span>Subtotal:</span>
+              <span>$${(order.subtotal || 0).toFixed(2)}</span>
+            </div>
+            ${order.discount ? `<div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px; color: #16a34a;"><span>Coupon Discount:</span><span>-$${order.discount.toFixed(2)}</span></div>` : ''}
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px;">
+              <span>Delivery Charge:</span>
+              <span>$${(order.shipping || 0).toFixed(2)}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px;">
+              <span>Tax:</span>
+              <span>$${(order.tax || 0).toFixed(2)}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 900; margin-top: 8px;">
+              <span>Total Paid (USD):</span>
+              <span style="color: #0070ba;">$${(order.total || 0).toFixed(2)}</span>
             </div>
           </div>
 
           <div style="margin-top: 24px; text-align: center;">
-            <a href="https://palettehubb.com/track-order?orderNumber=${order.orderNumber}" style="display: inline-block; background: #000; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: bold;">
-              Track Your Order Status
+            <a href="${SITE_URL}/admin" style="display: inline-block; background: #000; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: bold;">
+              Open Admin Dashboard
             </a>
           </div>
         </div>
       `;
 
       await transporter.sendMail({
-        from: `"Palette Hubb" <${GMAIL_USER}>`,
-        to: order.customer.email,
-        subject: `Your Palette Hubb Order #${order.orderNumber} is Confirmed!`,
-        html: customerHtml,
+        from: `"Palette Hubb Orders" <${GMAIL_USER}>`,
+        to: GMAIL_USER,
+        subject: `🔔 New Order #${order.orderNumber} - $${(order.total || 0).toFixed(2)} USD (${order.customer.fullName})`,
+        html: adminHtml,
       });
+      adminSent = true;
+      console.log(`[Email Dispatch] Admin notification sent for #${order.orderNumber}`);
+    } catch (adminErr) {
+      console.error(`[Email Dispatch] Failed to send Admin email for #${order.orderNumber}:`, adminErr);
     }
 
-    console.log(`[Email Dispatch] Successfully sent order emails for #${order.orderNumber}`);
+    // --- EMAIL 2: NOTIFICATIONS TO ASSIGNED SUPPLIERS ---
+    for (const [suppId, suppItems] of supplierItemsMap.entries()) {
+      try {
+        const suppInfo = supplierEmailMap.get(suppId);
+        if (!suppInfo || !suppInfo.email) {
+          console.warn(`[Email Dispatch] No email on file for supplier ID: ${suppId}`);
+          continue;
+        }
+
+        const supplierLinesHtml = suppItems
+          .map(
+            (it) => `
+            <tr style="border-bottom: 1px solid #eeeeee;">
+              <td style="padding: 10px 0;">
+                <strong style="color: #111;">${it.name}</strong><br/>
+                <span style="font-size: 12px; color: #666;">
+                  ${it.size ? `Size: ${it.size} | ` : ''}${it.color ? `Color: ${it.color} | ` : ''}Quantity: <b>${it.quantity}</b>
+                </span>
+              </td>
+            </tr>`
+          )
+          .join('');
+
+        const suppHtml = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 24px; color: #1a1a1a;">
+            <h2 style="font-size: 18px; font-weight: 900; margin: 0 0 4px 0;">Fulfillment Dispatch Request</h2>
+            <p style="font-size: 13px; color: #666; margin: 0 0 20px 0;">Order Ref: <strong>#${order.orderNumber}</strong> (${order.supplierOrderRef || 'SUP-DIRECT'})</p>
+
+            <p style="font-size: 13px; line-height: 1.5;">Hello <strong>${suppInfo.name}</strong>,<br/>A new paid order has been assigned to your fulfillment facility. Please prepare the items below for dispatch:</p>
+
+            <div style="background: #f8fafc; border-radius: 12px; padding: 14px; margin: 16px 0; border: 1px solid #e2e8f0; font-size: 13px;">
+              <strong style="display: block; margin-bottom: 6px; color: #333;">Ship To Customer:</strong>
+              <strong>${order.customer.fullName}</strong><br/>
+              ${order.customer.street}<br/>
+              ${order.customer.city}, ${order.customer.state}${postalDisplay}<br/>
+              ${order.customer.country}<br/>
+              Phone: ${order.customer.phone}
+            </div>
+
+            <h3 style="font-size: 13px; text-transform: uppercase; margin: 16px 0 8px 0; color: #555;">Assigned Items to Pack</h3>
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+              ${supplierLinesHtml}
+            </table>
+
+            <div style="margin-top: 24px; text-align: center;">
+              <a href="${SITE_URL}/supplier-dashboard" style="display: inline-block; background: #0070ba; color: #fff; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: bold;">
+                Open Supplier Portal
+              </a>
+            </div>
+          </div>
+        `;
+
+        await transporter.sendMail({
+          from: `"Palette Hubb Dropship" <${GMAIL_USER}>`,
+          to: suppInfo.email,
+          subject: `📦 Dropship Dispatch Request #${order.orderNumber} - Palette Hubb`,
+          html: suppHtml,
+        });
+        suppliersSentCount += 1;
+        console.log(`[Email Dispatch] Supplier alert sent to ${suppInfo.email} for #${order.orderNumber}`);
+      } catch (suppErr) {
+        console.error(`[Email Dispatch] Supplier email error for #${order.orderNumber}:`, suppErr);
+      }
+    }
+
+    // --- EMAIL 3: RECEIPT TO CUSTOMER ---
+    if (order.customer.email) {
+      try {
+        const customerHtml = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e5e5; border-radius: 16px; padding: 24px; color: #1a1a1a;">
+            <div style="border-bottom: 2px solid #000; padding-bottom: 16px; margin-bottom: 20px;">
+              <h1 style="font-size: 20px; font-weight: 900; margin: 0; text-transform: uppercase;">Palette Hubb</h1>
+              <p style="font-size: 14px; color: #16a34a; font-weight: bold; margin: 4px 0 0 0;">✓ Order Confirmed #${order.orderNumber}</p>
+            </div>
+
+            <p style="font-size: 13px; line-height: 1.6;">Thank you for your order, <strong>${order.customer.fullName}</strong>! We've received your payment and our fulfillment partners are preparing your items.</p>
+
+            <div style="background: #f8fafc; border-radius: 12px; padding: 14px; margin: 16px 0; border: 1px solid #e2e8f0; font-size: 13px;">
+              <strong style="color: #333;">Delivery Address:</strong><br/>
+              ${order.customer.fullName}<br/>
+              ${fullAddress}<br/>
+              Phone: ${order.customer.phone}
+            </div>
+
+            <h3 style="font-size: 14px; text-transform: uppercase; margin: 20px 0 10px 0; color: #555;">Order Summary</h3>
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin: 10px 0 20px 0;">
+              ${itemsHtml}
+            </table>
+
+            <div style="border-top: 2px solid #111; padding-top: 12px; margin-top: 10px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px;">
+                <span>Subtotal:</span>
+                <span>$${(order.subtotal || 0).toFixed(2)}</span>
+              </div>
+              ${order.discount ? `<div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px; color: #16a34a;"><span>Discount:</span><span>-$${order.discount.toFixed(2)}</span></div>` : ''}
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px;">
+                <span>Delivery Charge:</span>
+                <span>$${(order.shipping || 0).toFixed(2)}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px;">
+                <span>Tax:</span>
+                <span>$${(order.tax || 0).toFixed(2)}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 900; margin-top: 8px;">
+                <span>Total Amount Paid:</span>
+                <span style="color: #0070ba;">$${(order.total || 0).toFixed(2)} USD</span>
+              </div>
+            </div>
+
+            <div style="margin-top: 24px; text-align: center;">
+              <a href="${SITE_URL}/track-order?orderNumber=${order.orderNumber}" style="display: inline-block; background: #000; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: bold;">
+                Track Your Order Status
+              </a>
+            </div>
+          </div>
+        `;
+
+        await transporter.sendMail({
+          from: `"Palette Hubb" <${GMAIL_USER}>`,
+          to: order.customer.email,
+          subject: `✓ Your Palette Hubb Order #${order.orderNumber} is Confirmed!`,
+          html: customerHtml,
+        });
+        customerSent = true;
+        console.log(`[Email Dispatch] Customer receipt sent to ${order.customer.email} for #${order.orderNumber}`);
+      } catch (custErr) {
+        console.error(`[Email Dispatch] Customer email error for #${order.orderNumber}:`, custErr);
+      }
+    }
+
+    console.log(
+      `[Email Dispatch Complete] #${order.orderNumber} - Admin: ${adminSent}, Customer: ${customerSent}, Suppliers: ${suppliersSentCount}`
+    );
   } catch (error) {
-    console.error(`[Email Dispatch Error] Failed to send order emails for #${order.orderNumber}:`, error);
+    console.error(`[Email Dispatch Global Error] for #${order.orderNumber}:`, error);
   }
+
+  return { adminSent, customerSent, suppliersSentCount };
 }
 
 /**

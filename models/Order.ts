@@ -14,6 +14,9 @@ export interface IOrderItemDoc {
   itemStatus?: 'Pending' | 'Processing' | 'Dispatched' | 'Delivered' | 'Cancelled';
   trackingNumber?: string;
   trackingCarrier?: string;
+  deliveryChargeInsideDubai?: number;
+  deliveryChargeOutsideDubai?: number;
+  tax?: number;
 }
 
 export interface IOrderDoc extends Document {
@@ -25,7 +28,7 @@ export interface IOrderDoc extends Document {
     street: string;
     city: string;
     state: string;
-    pincode: string;
+    pincode?: string;
     country: string;
   };
   items: IOrderItemDoc[];
@@ -77,6 +80,9 @@ const OrderItemSchema = new Schema(
     },
     trackingNumber: { type: String },
     trackingCarrier: { type: String },
+    deliveryChargeInsideDubai: { type: Number, default: 0 },
+    deliveryChargeOutsideDubai: { type: Number, default: 0 },
+    tax: { type: Number, default: 0 },
   },
   { _id: false }
 );
@@ -91,8 +97,8 @@ const OrderSchema = new Schema<IOrderDoc>(
       street: { type: String, required: true },
       city: { type: String, required: true },
       state: { type: String, required: true },
-      pincode: { type: String, required: true },
-      country: { type: String, default: 'India' },
+      pincode: { type: String, default: '' },
+      country: { type: String, default: 'United Arab Emirates' },
     },
     items: [OrderItemSchema],
     subtotal: { type: Number, required: true },
