@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
     let serverSubtotal = 0;
     let serverDelivery = 0;
     let serverTax = 0;
+    const productDeliveryMap = new Map<string, number>();
 
     // STRICT SERVER-SIDE & DATABASE CALCULATION (Prevents any client price manipulation)
     for (const item of items) {
@@ -52,17 +53,22 @@ export async function POST(req: NextRequest) {
       const actualPrice = Number(dbProduct.price) || 0;
       serverSubtotal += actualPrice * qty;
 
-      // Delivery charge based on admin configuration:
-      // Inside Dubai vs Outside Dubai
-      const itemDelivery = isDubai
-        ? (Number(dbProduct.deliveryChargeInsideDubai) || 0)
-        : (Number(dbProduct.deliveryChargeOutsideDubai) || 0);
-      serverDelivery += itemDelivery * qty;
+      // Real-world logic: Delivery charge applies per unique product item to destination, not multiplied by quantity
+      const prodKey = String(dbProduct._id || dbProduct.slug);
+      if (!productDeliveryMap.has(prodKey)) {
+        const itemDelivery = isDubai
+          ? (Number(dbProduct.deliveryChargeInsideDubai) || 0)
+          : (Number(dbProduct.deliveryChargeOutsideDubai) || 0);
+        productDeliveryMap.set(prodKey, itemDelivery);
+      }
 
-      // Tax based on admin configuration
-      const itemTax = Number(dbProduct.tax) || 0;
-      serverTax += itemTax * qty;
+      // Tax entered in admin as percentage rate (e.g. 5 = 5% of product line amount)
+      const taxRatePercent = Number(dbProduct.tax) || 0;
+      const lineTax = (actualPrice * qty * taxRatePercent) / 100;
+      serverTax += lineTax;
     }
+
+    serverDelivery = Array.from(productDeliveryMap.values()).reduce((sum, v) => sum + v, 0);
 
     // Server-side genuine coupon verification
     let discount = 0;

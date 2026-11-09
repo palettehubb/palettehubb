@@ -84,6 +84,59 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, [items, appliedCoupon, mounted]);
 
+  // Live Catalog Sync: automatically refresh cart items with current delivery charges and tax from database
+  useEffect(() => {
+    if (!mounted || items.length === 0) return;
+
+    fetch('/api/products?limit=100')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.products)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const prodsMap = new Map<string, any>();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data.products.forEach((p: any) => {
+            if (p._id) prodsMap.set(String(p._id), p);
+            if (p.slug) prodsMap.set(p.slug, p);
+          });
+
+          setItems((prev) => {
+            let changed = false;
+            const updated = prev.map((item) => {
+              const live = prodsMap.get(item.productId) || prodsMap.get(item.slug);
+              if (live) {
+                const liveInside = Number(live.deliveryChargeInsideDubai) || 0;
+                const liveOutside = Number(live.deliveryChargeOutsideDubai) || 0;
+                const liveTax = Number(live.tax) || 0;
+                const livePrice = Number(live.price) || item.price;
+
+                if (
+                  item.deliveryChargeInsideDubai !== liveInside ||
+                  item.deliveryChargeOutsideDubai !== liveOutside ||
+                  item.tax !== liveTax ||
+                  item.price !== livePrice
+                ) {
+                  changed = true;
+                  return {
+                    ...item,
+                    price: livePrice,
+                    deliveryChargeInsideDubai: liveInside,
+                    deliveryChargeOutsideDubai: liveOutside,
+                    tax: liveTax,
+                  };
+                }
+              }
+              return item;
+            });
+            return changed ? updated : prev;
+          });
+        }
+      })
+      .catch(() => {
+        // Ignore background sync errors
+      });
+  }, [mounted]);
+
   const addItem = (
     product: {
       _id: string;

@@ -309,19 +309,6 @@ export default function ProductDetailClient({
                 )}
               </div>
 
-              {/* Delivery & Tax Notice */}
-              <div className="flex flex-wrap items-center gap-2 mb-4 text-[11px] font-semibold text-neutral-600">
-                <span className="bg-neutral-100 px-2.5 py-1 rounded-md border border-neutral-200">
-                  🚚 Inside Dubai Delivery: <strong className="text-neutral-900">${(product.deliveryChargeInsideDubai ?? 0).toFixed(2)}</strong>
-                </span>
-                <span className="bg-neutral-100 px-2.5 py-1 rounded-md border border-neutral-200">
-                  🌍 Outside Dubai: <strong className="text-neutral-900">${(product.deliveryChargeOutsideDubai ?? 0).toFixed(2)}</strong>
-                </span>
-                <span className="bg-neutral-100 px-2.5 py-1 rounded-md border border-neutral-200">
-                  🏛️ Tax: <strong className="text-neutral-900">${(product.tax ?? 0).toFixed(2)}</strong>
-                </span>
-              </div>
-
               {/* Description */}
               <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed font-normal mb-6">
                 {product.description}

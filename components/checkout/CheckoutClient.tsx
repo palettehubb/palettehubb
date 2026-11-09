@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -184,7 +184,47 @@ export default function CheckoutClient() {
     }
   };
 
-  // Dynamic Destination-based Shipping & Tax Calculation
+  // Live product charges map fetched directly from backend catalog
+  const [liveProductsMap, setLiveProductsMap] = useState<
+    Record<string, { deliveryChargeInsideDubai: number; deliveryChargeOutsideDubai: number; tax: number; price: number }>
+  >({});
+
+  // Background catalog sync on checkout mount to ensure freshest rates
+  useEffect(() => {
+    if (!items || items.length === 0) return;
+
+    let isMounted = true;
+    fetch('/api/products?limit=100')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.products)) {
+          const map: Record<string, { deliveryChargeInsideDubai: number; deliveryChargeOutsideDubai: number; tax: number; price: number }> = {};
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data.products.forEach((p: any) => {
+            const entry = {
+              deliveryChargeInsideDubai: Number(p.deliveryChargeInsideDubai) || 0,
+              deliveryChargeOutsideDubai: Number(p.deliveryChargeOutsideDubai) || 0,
+              tax: Number(p.tax) || 0,
+              price: Number(p.price) || 0,
+            };
+            if (p._id) map[String(p._id)] = entry;
+            if (p.slug) map[p.slug] = entry;
+            if (p.name) map[p.name.trim().toLowerCase()] = entry;
+          });
+
+          if (isMounted) {
+            setLiveProductsMap(map);
+          }
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, [items]);
+
+  // Dynamic Destination-based Shipping (per unique product item, not multiplied by count) & Tax Percentage Calculation
   const isDubaiSelected = useMemo(() => {
     const isUae =
       address.country.toLowerCase().includes('emirates') ||
@@ -194,23 +234,56 @@ export default function CheckoutClient() {
   }, [address.country, address.state]);
 
   const deliveryCharge = useMemo(() => {
-    return items.reduce((sum, item) => {
-      const charge = isDubaiSelected
-        ? (item.deliveryChargeInsideDubai ?? 0)
-        : (item.deliveryChargeOutsideDubai ?? 0);
-      return sum + charge * item.quantity;
-    }, 0);
-  }, [items, isDubaiSelected]);
+    // Real-world logic: Delivery charge applies per unique product item to destination, not multiplied by quantity
+    const productDeliveryMap = new Map<string, number>();
+    for (const item of items) {
+      const prodKey = item.productId || item.slug;
+      if (!productDeliveryMap.has(prodKey)) {
+        const live =
+          liveProductsMap[item.productId] ||
+          liveProductsMap[item.slug] ||
+          (item.name ? liveProductsMap[item.name.trim().toLowerCase()] : null);
+
+        const insideRate = live !== undefined && live !== null ? live.deliveryChargeInsideDubai : (item.deliveryChargeInsideDubai ?? 0);
+        const outsideRate = live !== undefined && live !== null ? live.deliveryChargeOutsideDubai : (item.deliveryChargeOutsideDubai ?? 0);
+
+        const charge = isDubaiSelected ? insideRate : outsideRate;
+        productDeliveryMap.set(prodKey, charge);
+      }
+    }
+    return Array.from(productDeliveryMap.values()).reduce((sum, val) => sum + val, 0);
+  }, [items, isDubaiSelected, liveProductsMap]);
 
   const taxAmount = useMemo(() => {
+    // Real-world logic: Tax is entered as percentage (e.g. 5 = 5% of item total amount)
     return items.reduce((sum, item) => {
-      return sum + (item.tax ?? 0) * item.quantity;
+      const live =
+        liveProductsMap[item.productId] ||
+        liveProductsMap[item.slug] ||
+        (item.name ? liveProductsMap[item.name.trim().toLowerCase()] : null);
+
+      const taxRate = live !== undefined && live !== null ? live.tax : (item.tax ?? 0);
+      const price = live !== undefined && live !== null ? live.price : item.price;
+      const lineAmount = price * item.quantity;
+      return sum + (lineAmount * taxRate) / 100;
     }, 0);
-  }, [items]);
+  }, [items, liveProductsMap]);
+
+  const effectiveSubtotal = useMemo(() => {
+    const liveSub = items.reduce((sum, item) => {
+      const live =
+        liveProductsMap[item.productId] ||
+        liveProductsMap[item.slug] ||
+        (item.name ? liveProductsMap[item.name.trim().toLowerCase()] : null);
+      const price = live !== undefined && live !== null ? live.price : item.price;
+      return sum + price * item.quantity;
+    }, 0);
+    return liveSub > 0 ? liveSub : subtotal;
+  }, [items, liveProductsMap, subtotal]);
 
   const calculatedTotal = useMemo(() => {
-    return Math.max(0, subtotal - discount + deliveryCharge + taxAmount);
-  }, [subtotal, discount, deliveryCharge, taxAmount]);
+    return Math.max(0, effectiveSubtotal - discount + deliveryCharge + taxAmount);
+  }, [effectiveSubtotal, discount, deliveryCharge, taxAmount]);
 
   const [agreedToReturnPolicy, setAgreedToReturnPolicy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -573,7 +646,7 @@ export default function CheckoutClient() {
                 <div className="flex justify-between">
                   <span>Subtotal ({items.length} items)</span>
                   <span className="font-semibold text-neutral-900">
-                    ${subtotal.toFixed(2)}
+                    ${effectiveSubtotal.toFixed(2)}
                   </span>
                 </div>
 
@@ -612,7 +685,7 @@ export default function CheckoutClient() {
                   <div className="flex flex-col">
                     <span>Total Amount</span>
                     <span className="text-[10px] font-normal text-neutral-400">
-                      Price (${(subtotal - discount).toFixed(2)}) + Delivery (${deliveryCharge.toFixed(2)}) + Tax (${taxAmount.toFixed(2)})
+                      Price (${(effectiveSubtotal - discount).toFixed(2)}) + Delivery (${deliveryCharge.toFixed(2)}) + Tax (${taxAmount.toFixed(2)})
                     </span>
                   </div>
                   <span className="text-base sm:text-lg text-[#003087]">

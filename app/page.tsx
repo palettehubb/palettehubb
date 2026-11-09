@@ -60,7 +60,7 @@ async function getHomePageData(): Promise<{
     if (db) {
       const [prods, cats] = await Promise.all([
         Product.find({ isFeatured: true, isAvailable: true })
-          .select('name slug price originalPrice discountPercent images rating category stock isFeatured')
+          .select('name slug price originalPrice discountPercent images rating category stock isFeatured deliveryChargeInsideDubai deliveryChargeOutsideDubai tax')
           .limit(8)
           .lean(),
         Category.find({ isActive: true })

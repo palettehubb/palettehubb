@@ -1488,7 +1488,7 @@ export default function AdminDashboardClient() {
                             <div className="flex flex-col gap-0.5 mt-1 text-[10px] text-neutral-500 font-medium">
                               <span>Dubai Deliv: ${(p.deliveryChargeInsideDubai ?? 0).toFixed(2)}</span>
                               <span>Other Deliv: ${(p.deliveryChargeOutsideDubai ?? 0).toFixed(2)}</span>
-                              <span>Tax: ${(p.tax ?? 0).toFixed(2)}</span>
+                              <span>Tax Rate: {p.tax ?? 0}%</span>
                             </div>
                           </td>
 
@@ -2579,20 +2579,21 @@ export default function AdminDashboardClient() {
                     </div>
                     <div>
                       <label className="block font-bold uppercase mb-1 text-[11px] text-neutral-700">
-                        Tax Amount ($) *
+                        Tax Rate (%) *
                       </label>
                       <div className="relative">
-                        <span className="absolute left-3.5 top-2.5 text-neutral-500 font-bold text-xs pointer-events-none">$</span>
                         <input
                           type="number"
                           step="0.01"
                           min="0"
+                          max="100"
                           required
                           value={prodTax}
                           onChange={(e) => setProdTax(e.target.value)}
-                          placeholder="e.g. 5.00"
-                          className="w-full bg-white border border-neutral-200 rounded-xl pl-7 pr-3 py-2 text-xs font-semibold focus:outline-none focus:border-black"
+                          placeholder="e.g. 5"
+                          className="w-full bg-white border border-neutral-200 rounded-xl pl-3 pr-8 py-2 text-xs font-semibold focus:outline-none focus:border-black"
                         />
+                        <span className="absolute right-3.5 top-2.5 text-neutral-500 font-bold text-xs pointer-events-none">%</span>
                       </div>
                     </div>
                   </div>

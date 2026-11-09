@@ -101,6 +101,7 @@ export async function POST(req: NextRequest) {
     let serverSubtotal = 0;
     let serverDelivery = 0;
     let serverTax = 0;
+    const productDeliveryMap = new Map<string, number>();
 
     for (const item of items) {
       // Find genuine product in database
@@ -139,13 +140,19 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const itemDelivery = isDubai
-        ? (Number(dbProduct.deliveryChargeInsideDubai) || 0)
-        : (Number(dbProduct.deliveryChargeOutsideDubai) || 0);
-      serverDelivery += itemDelivery * qty;
+      // Real-world logic: Delivery charge applies per unique product item to destination, not multiplied by count
+      const prodKey = String(dbProduct._id || dbProduct.slug);
+      if (!productDeliveryMap.has(prodKey)) {
+        const itemDelivery = isDubai
+          ? (Number(dbProduct.deliveryChargeInsideDubai) || 0)
+          : (Number(dbProduct.deliveryChargeOutsideDubai) || 0);
+        productDeliveryMap.set(prodKey, itemDelivery);
+      }
 
-      const itemTax = Number(dbProduct.tax) || 0;
-      serverTax += itemTax * qty;
+      // Tax entered in admin as percentage rate (e.g. 5 = 5% of product line amount)
+      const taxRatePercent = Number(dbProduct.tax) || 0;
+      const lineTax = (actualPrice * qty * taxRatePercent) / 100;
+      serverTax += lineTax;
 
       verifiedItems.push({
         productId: dbProduct?._id?.toString() || item.productId,
@@ -161,7 +168,7 @@ export async function POST(req: NextRequest) {
         itemStatus: 'Pending',
         deliveryChargeInsideDubai: dbProduct.deliveryChargeInsideDubai || 0,
         deliveryChargeOutsideDubai: dbProduct.deliveryChargeOutsideDubai || 0,
-        tax: itemTax,
+        tax: (actualPrice * taxRatePercent) / 100,
       });
 
       serverSubtotal += actualPrice * qty;
@@ -183,6 +190,8 @@ export async function POST(req: NextRequest) {
         );
       }
     }
+
+    serverDelivery = Array.from(productDeliveryMap.values()).reduce((sum, v) => sum + v, 0);
 
     // Server-side genuine discount calculation
     let discount = 0;
