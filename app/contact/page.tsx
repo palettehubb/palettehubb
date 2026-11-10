@@ -179,7 +179,7 @@ export default function ContactPage() {
               <span className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider block mb-3">Official Direct Channels</span>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 <a
-                  href="https://wa.me/message/MYKI53HDVSWTD1?text=Hello%20PALETTE%20HUB"
+                  href="https://wa.me/971568181187?text=Hello%20PALETTE%20HUB"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl border border-emerald-300 bg-emerald-50/50 hover:bg-emerald-100/60 text-xs font-bold text-emerald-800 transition-all cursor-pointer"

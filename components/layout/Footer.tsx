@@ -209,7 +209,7 @@ export default function Footer() {
 
               {/* WhatsApp Message Us */}
               <a
-                href="https://wa.me/message/MYKI53HDVSWTD1?text=Hello%20PALETTE%20HUB"
+                href="https://wa.me/971568181187?text=Hello%20PALETTE%20HUB"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Chat with PALETTE HUB on WhatsApp"
