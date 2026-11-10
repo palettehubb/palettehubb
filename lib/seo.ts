@@ -57,9 +57,7 @@ export const SITE_METADATA = {
   },
   socialLinks: [
     'https://instagram.com',
-    'https://facebook.com',
-    'https://x.com',
-    'https://youtube.com',
+    'https://tiktok.com',
   ],
 };
 
