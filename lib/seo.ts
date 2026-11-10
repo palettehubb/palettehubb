@@ -58,6 +58,7 @@ export const SITE_METADATA = {
   socialLinks: [
     'https://www.instagram.com/palettehubb',
     'https://www.tiktok.com/@palette_hubb',
+    'https://wa.me/message/MYKI53HDVSWTD1',
   ],
 };
 
