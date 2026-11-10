@@ -212,6 +212,15 @@ export default function Footer() {
                 href="https://wa.me/971568181187?text=Hello%20PALETTE%20HUB"
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={(e) => {
+                  if (typeof window !== 'undefined') {
+                    const isLargeScreen = window.innerWidth >= 768;
+                    if (isLargeScreen) {
+                      e.preventDefault();
+                      window.open('https://web.whatsapp.com/send?phone=971568181187&text=Hello%20PALETTE%20HUB', '_blank', 'noopener,noreferrer');
+                    }
+                  }
+                }}
                 aria-label="Chat with PALETTE HUB on WhatsApp"
                 className="flex items-center gap-3 hover:text-white transition-colors group cursor-pointer"
               >
