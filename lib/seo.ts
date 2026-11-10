@@ -56,8 +56,8 @@ export const SITE_METADATA = {
     icbm: '25.2048, 55.2708',
   },
   socialLinks: [
-    'https://instagram.com',
-    'https://tiktok.com',
+    'https://www.instagram.com/palettehubb',
+    'https://www.tiktok.com/@palette_hubb',
   ],
 };
 
