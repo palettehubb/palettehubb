@@ -33,6 +33,15 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        source: "/api/products",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=60, stale-while-revalidate=300",
+          },
+        ],
+      },
+      {
         source: "/:path*",
         headers: [
           {
@@ -54,6 +63,14 @@ const nextConfig: NextConfig = {
           {
             key: "Referrer-Policy",
             value: "strict-origin-when-cross-origin",
+          },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+          {
+            key: "X-XSS-Protection",
+            value: "1; mode=block",
           },
         ],
       },

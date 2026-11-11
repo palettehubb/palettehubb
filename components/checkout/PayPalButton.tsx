@@ -99,7 +99,7 @@ export default function PayPalButton({
 
     const script = document.createElement('script');
     script.id = scriptId;
-    script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD&intent=capture&components=buttons`;
+    script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD&intent=capture&components=buttons,funding-eligibility&enable-funding=card`;
     script.async = true;
     script.onload = () => setSdkReady(true);
     script.onerror = () => onErrorRef.current('Failed to load PayPal secure checkout SDK.');
@@ -281,7 +281,16 @@ export default function PayPalButton({
   }, [sdkReady]);
 
   return (
-    <div className="w-full">
+    <div 
+      className="w-full relative"
+      onClickCapture={(e) => {
+        if (disabled) {
+          e.preventDefault();
+          e.stopPropagation();
+          onErrorRef.current('Please agree to the 3-Day Return Policy above to unlock PayPal & Card checkout.');
+        }
+      }}
+    >
       {isProcessing && (
         <div className="flex items-center justify-center gap-2 p-3 mb-2 rounded-xl bg-amber-50 text-amber-800 text-xs font-semibold animate-pulse border border-amber-200">
           <div className="w-3.5 h-3.5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />

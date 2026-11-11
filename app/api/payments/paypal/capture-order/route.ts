@@ -202,7 +202,7 @@ export async function POST(req: NextRequest) {
       Math.round((serverSubtotal - discount + serverDelivery + serverTax) * 100) / 100
     );
 
-    const orderNumber = `PH-${Math.floor(10000 + Math.random() * 90000)}`;
+    const orderNumber = `PH-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`;
 
     const newOrder = await Order.create({
       orderNumber,
@@ -242,10 +242,16 @@ export async function POST(req: NextRequest) {
 
     // Send instant customer confirmation email and supplier alerts
     try {
-      sendOrderEmails(newOrder).catch((err) => {
-        console.error('Failed to send order emails asynchronously:', err);
-      });
-    } catch {}
+      sendOrderEmails(newOrder)
+        .then((res) => {
+          console.log(`[PayPal Capture] Order confirmation emails sent for ${orderNumber}:`, res);
+        })
+        .catch((err) => {
+          console.error(`[PayPal Capture] Critical: Email delivery failed for ${orderNumber}:`, err);
+        });
+    } catch (emailErr) {
+      console.error('[PayPal Capture] Sync error initiating emails:', emailErr);
+    }
 
     return NextResponse.json({
       success: true,

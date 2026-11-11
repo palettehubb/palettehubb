@@ -23,6 +23,7 @@ function getTransporter(): Transporter {
       pool: true,
       maxConnections: 5,
       maxMessages: 100,
+      tls: { rejectUnauthorized: false },
     });
   }
   return transporterInstance;

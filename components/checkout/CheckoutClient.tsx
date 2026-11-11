@@ -296,6 +296,13 @@ export default function CheckoutClient() {
   };
 
   const handleOrderSuccess = (order: IOrder) => {
+    // Immediately lock completed order state and scroll smoothly to top so user sees instant confirmation
+    setCompletedOrder(order);
+    setShowCelebration(true);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
     try {
       const existing = JSON.parse(localStorage.getItem('palette_device_orders') || '[]');
       const updatedDeviceOrders = [
@@ -313,17 +320,14 @@ export default function CheckoutClient() {
       // ignore storage failure
     }
 
-    setCompletedOrder(order);
-    setShowCelebration(true);
-    clearCart();
-
-    // Smooth transition to track order page after 2.2 seconds
+    // Clear cart right before router navigation to avoid layout collapse jump to footer
     setTimeout(() => {
+      clearCart();
       router.push(`/track-order?orderNumber=${encodeURIComponent(order.orderNumber)}`);
     }, 2200);
   };
 
-  if (items.length === 0 && !completedOrder) {
+  if ((items.length === 0 || !items) && !completedOrder) {
     return (
       <div className="min-h-[65vh] flex flex-col items-center justify-center px-4 text-center">
         <h2 className="text-xl font-bold text-neutral-900 mb-2">Your Bag is Empty</h2>

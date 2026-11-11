@@ -158,9 +158,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItems((prev) => {
       const existingIndex = prev.findIndex(
         (i) =>
-          i.productId === product._id &&
-          i.size === (size || undefined) &&
-          i.color === (color || undefined)
+          i.productId === product._id && (i.size || '') === (size || '') && (i.color || '') === (color || '')
       );
 
       if (existingIndex > -1) {
@@ -214,9 +212,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       prev.filter(
         (i) =>
           !(
-            i.productId === productId &&
-            i.size === (size || undefined) &&
-            i.color === (color || undefined)
+            i.productId === productId && (i.size || '') === (size || '') && (i.color || '') === (color || '')
           )
       )
     );
@@ -235,9 +231,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItems((prev) =>
       prev.map((i) => {
         if (
-          i.productId === productId &&
-          i.size === (size || undefined) &&
-          i.color === (color || undefined)
+          i.productId === productId && (i.size || '') === (size || '') && (i.color || '') === (color || '')
         ) {
           return { ...i, quantity: Math.min(quantity, i.stock || 99) };
         }
