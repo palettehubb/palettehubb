@@ -15,7 +15,7 @@ export async function GET() {
         { success: true, categories },
         {
           headers: {
-            'Cache-Control': 'no-store, no-cache, must-revalidate',
+            'Cache-Control': 'public, max-age=60, stale-while-revalidate=600',
           },
         }
       );

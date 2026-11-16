@@ -16,6 +16,117 @@ import { useWishlist } from '@/context/WishlistContext';
 import { ICategory } from '@/types';
 import Logo from '@/components/ui/Logo';
 
+const DEFAULT_NAV_CATEGORIES: ICategory[] = [
+  {
+    _id: 'cat-1',
+    name: 'Limited Drops',
+    slug: 'chain',
+    order: 0,
+    isActive: true,
+    image: '/images/hero/hero-card-exact.png',
+    subcategories: ['Seasonal capsules', 'Numbered Editions', "Designer's Cut", 'Flash Releases', 'Artist Collaboration'],
+  },
+  {
+    _id: 'cat-2',
+    name: 'Outerwear',
+    slug: 'outerwear',
+    order: 1,
+    isActive: true,
+    image: '/images/hero/hero-card-exact.png',
+    subcategories: ['Jackets & Windbreakers', 'Oversized Hoodies', 'Denim Jackets', 'Puffer Jackets &vests'],
+  },
+  {
+    _id: 'cat-3',
+    name: "Men's Tops & Tees",
+    slug: 'men-s-tops-tees',
+    order: 2,
+    isActive: true,
+    image: '/images/hero/hero-card-exact.png',
+    subcategories: ['Graphic & Print Tees', 'Oversized Heavyweight Tees', 'Acid Wash & Vintage Tops', 'Long Sleeve Shirts & Polos'],
+  },
+  {
+    _id: 'cat-4',
+    name: 'Men’s Bottoms',
+    slug: 'men-s-bottoms',
+    order: 3,
+    isActive: true,
+    image: '/images/hero/hero-card-exact.png',
+    subcategories: ['Cargo & Utility Pants', 'Wide-Leg & Straight Denim', 'Fleece Sweatpants & Joggers', 'Utility & Casual Shorts'],
+  },
+  {
+    _id: 'cat-5',
+    name: 'Ribbed Knit Lounge sets',
+    slug: 'men-s-accessories-jewelry',
+    order: 4,
+    isActive: true,
+    image: '/images/hero/hero-card-exact.png',
+    subcategories: ['Kint & Lounge Sete', 'streetwear& Sweat Sete', 'Linen & Resort set'],
+  },
+  {
+    _id: 'cat-6',
+    name: 'Women’s Tops & Crops',
+    slug: 'women-s-tops-crops',
+    order: 5,
+    isActive: true,
+    image: '/images/hero/hero-card-exact.png',
+    subcategories: ['Cropped Graphic Tees', 'Boxy & Oversized Tees', 'Fitted Tops & Corset Tops', 'Ribbed Tanks & Long Sleeves'],
+  },
+  {
+    _id: 'cat-7',
+    name: 'Women’s Outerwear',
+    slug: 'women-s-outerwear',
+    order: 6,
+    isActive: true,
+    image: '/images/hero/hero-card-exact.png',
+    subcategories: ['Cropped Fleece & Sherpa Jackets', 'Oversized Hoodies & Zip-Ups', 'Cropped Denim & Puffer Jackets', 'Trench & Lightweight Layers'],
+  },
+  {
+    _id: 'cat-8',
+    name: "Women's bottoms",
+    slug: 'women-s-bottoms',
+    order: 7,
+    isActive: true,
+    image: '/images/hero/hero-card-exact.png',
+    subcategories: ['Trousers', 'Skirts', 'Shorts', 'Jeans'],
+  },
+  {
+    _id: 'cat-9',
+    name: 'Footwear',
+    slug: 'footwear',
+    order: 8,
+    isActive: true,
+    image: '/images/hero/hero-card-exact.png',
+    subcategories: ["Men's Footwear", "Women's Footwear"],
+  },
+  {
+    _id: 'cat-10',
+    name: 'Accessories',
+    slug: 'accessories',
+    order: 9,
+    isActive: true,
+    image: '/images/hero/hero-card-exact.png',
+    subcategories: ["Men's Accessories", "Women's Accessories"],
+  },
+  {
+    _id: 'cat-11',
+    name: 'Skincare & Beauty',
+    slug: 'skincare-beauty',
+    order: 10,
+    isActive: true,
+    image: '/images/hero/hero-card-exact.png',
+    subcategories: ['All Skincare', "Women's Beauty", "Men's Grooming", 'Hair care'],
+  },
+  {
+    _id: 'cat-12',
+    name: 'Fragrance',
+    slug: 'fragrance',
+    order: 11,
+    isActive: true,
+    image: '/images/hero/hero-card-exact.png',
+    subcategories: ['Signature Scents', 'Warm & Bold', 'Pocket & Travel', 'For Her', 'For Him'],
+  },
+];
+
 export default function Navbar() {
   const router = useRouter();
   const { totalItemsCount, setIsOpen } = useCart();
@@ -25,13 +136,14 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileCategoryOpen, setMobileCategoryOpen] = useState<string | null>(null);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const [categories, setCategories] = useState<ICategory[]>([]);
+  const [categories, setCategories] = useState<ICategory[]>(DEFAULT_NAV_CATEGORIES);
 
   useEffect(() => {
+    // Keep categories in sync dynamically from API with 0-delay initial paint
     fetch('/api/categories')
       .then((res) => res.json())
       .then((data) => {
-        if (data.success && Array.isArray(data.categories)) {
+        if (data.success && Array.isArray(data.categories) && data.categories.length > 0) {
           setCategories(data.categories);
         }
       })
