@@ -13,6 +13,8 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+export const instant = false;
+
 // React 19 request deduplication cache: generateMetadata and ProductDetailPage share a single DB roundtrip
 const getProductData = cache(async (slug: string) => {
   let product: IProduct | null = null;
