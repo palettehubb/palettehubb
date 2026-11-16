@@ -114,7 +114,7 @@ export default function RootLayout({
       <body className="min-h-screen flex flex-col bg-[#f7f5ee] text-neutral-900 antialiased selection:bg-black selection:text-white">
         <Providers>
           <Navbar />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 min-h-[calc(100vh-80px)]">{children}</main>
           <Footer />
         </Providers>
       </body>

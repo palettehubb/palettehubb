@@ -275,14 +275,6 @@ export default function Footer() {
               <ShieldCheck className="w-3.5 h-3.5" />
               <span>SSL Protected Checkout</span>
             </span>
-            <Link
-              href="/admin"
-              rel="nofollow"
-              prefetch={false}
-              className="hover:text-neutral-300 transition-colors"
-            >
-              Admin Portal
-            </Link>
           </div>
         </div>
 

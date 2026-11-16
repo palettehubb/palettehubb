@@ -5,7 +5,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
-  Star,
   ShieldCheck,
   Truck,
   CheckCircle2,
@@ -274,7 +273,7 @@ export default function ProductDetailClient({
           {/* Right Column: Product Meta & Purchasing Controls (Sticky on Desktop) */}
           <div className="lg:col-span-6 flex flex-col justify-between space-y-6 lg:sticky lg:top-28">
             <div>
-              {/* Category & Rating */}
+              {/* Category */}
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-[#985842]">
                   <span>{product.category}</span>
@@ -284,11 +283,6 @@ export default function ProductDetailClient({
                       <span className="text-neutral-800">{product.subcategory}</span>
                     </>
                   )}
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-neutral-700 font-semibold bg-neutral-100 px-2.5 py-1 rounded-full">
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <span>{product.rating || 4.9}</span>
-                  <span className="text-neutral-400">({product.reviewsCount || 34})</span>
                 </div>
               </div>
 
