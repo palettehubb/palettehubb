@@ -10,25 +10,34 @@ const SLIDES = [
     id: 1,
     headline: 'Unveil Your Beauty with Every Wear',
     subtitle: 'Curated fashion, tailored silhouettes & timeless lifestyle accessories.',
-    image: '/images/hero/hero-slide-1.jpg',
+    image: '/images/hero/hero-slide-1-v2.png',
     ctaText: 'See Collections',
     ctaLink: '/shop',
+    imageContainerClass: 'w-full',
+    imageClass: 'object-cover object-[78%_center] sm:object-[70%_center] md:object-center lg:object-center',
+    gradientClass: 'absolute inset-0 bg-gradient-to-r from-[#703b29]/80 via-[#703b29]/45 sm:via-[#703b29]/25 to-transparent w-full md:w-3/5',
   },
   {
     id: 2,
     headline: 'Your Style, Our Priority',
     subtitle: 'Quiet luxury tailoring, structured blazers & fine minimalist chronographs.',
-    image: '/images/hero/hero-slide-2.jpg',
+    image: '/images/hero/hero-slide-2.png',
     ctaText: 'Explore New Drops',
     ctaLink: '/shop?category=Costume',
+    imageContainerClass: 'w-full',
+    imageClass: 'object-cover object-[48%_center] sm:object-[50%_center] md:object-center lg:object-center',
+    gradientClass: 'absolute inset-0 bg-gradient-to-r from-[#854b37]/65 via-[#854b37]/35 sm:via-[#854b37]/25 to-transparent w-full md:w-3/5',
   },
   {
     id: 3,
     headline: 'Upgrade Your Daily Aesthetic',
-    subtitle: 'Bespoke floral dresses, handcrafted leather bags & timeless silhouettes.',
-    image: '/images/hero/hero-slide-3.jpg',
+    subtitle: 'Bespoke leather bags, ambient lighting & curated minimalist lifestyle essentials.',
+    image: '/images/hero/hero-slide-3.png',
     ctaText: 'Shop New Arrivals',
     ctaLink: '/shop',
+    imageContainerClass: 'w-full',
+    imageClass: 'object-cover object-[50%_center] md:object-center lg:object-center',
+    gradientClass: 'absolute inset-0 bg-gradient-to-r from-[#854b37]/65 via-[#854b37]/35 sm:via-[#854b37]/25 to-transparent w-full md:w-3/5',
   },
 ];
 
@@ -65,23 +74,25 @@ export default function HeroSection() {
                 currentSlide === idx ? 'opacity-100 z-0' : 'opacity-0 z-0 pointer-events-none'
               }`}
             >
-              <Image
-                src={slide.image}
-                alt={slide.headline}
-                fill
-                priority
-                loading="eager"
-                className="object-cover object-[38%_0%] sm:object-[45%_0%] md:object-[center_0%] lg:object-[center_0%] transform scale-[1.01]"
-                sizes="(max-width: 1280px) 100vw, 1280px"
-              />
-              {/* Soft dark-terracotta gradient on left to guarantee headline readability across all displays */}
-              <div className="absolute inset-0 bg-gradient-to-r from-[#884732]/95 via-[#884732]/75 sm:via-[#884732]/60 to-transparent w-full md:w-3/5" />
+              <div className={`absolute inset-0 ${slide.imageContainerClass}`}>
+                <Image
+                  src={slide.image}
+                  alt={slide.headline}
+                  fill
+                  priority
+                  loading="eager"
+                  className={slide.imageClass}
+                  sizes="(max-width: 1280px) 100vw, 1280px"
+                />
+                {/* Soft gradient blend for seamless integration & readability */}
+                <div className={slide.gradientClass} />
+              </div>
             </div>
           ))}
 
           {/* Foreground Editorial Content */}
           <div className="relative z-10 w-full px-5 sm:px-10 md:px-14 lg:px-16 py-8 sm:py-12 flex flex-col justify-between h-full">
-            <div className="max-w-lg lg:max-w-xl">
+            <div className="max-w-md md:max-w-lg lg:max-w-xl">
               {/* Category / Subtitle Badge */}
               <div className="inline-flex items-center gap-2 mb-4">
                 <span className="w-2 h-2 rounded-full bg-amber-300 animate-pulse" />
@@ -91,12 +102,12 @@ export default function HeroSection() {
               </div>
 
               {/* Bold Editorial Headline */}
-              <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-[54px] font-bold text-white tracking-tight leading-[1.12] mb-5">
+              <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-[54px] font-bold text-white tracking-tight leading-[1.12] mb-5 drop-shadow-[0_2px_10px_rgba(0,0,0,0.35)]">
                 {SLIDES[currentSlide].headline}
               </h1>
 
               {/* Supporting Editorial Text */}
-              <p className="text-sm sm:text-base text-white/90 font-light leading-relaxed max-w-md mb-8">
+              <p className="text-sm sm:text-base text-white/95 font-light leading-relaxed max-w-md mb-8 drop-shadow-[0_1px_6px_rgba(0,0,0,0.3)]">
                 {SLIDES[currentSlide].subtitle}
               </p>
 

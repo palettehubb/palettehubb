@@ -2,6 +2,8 @@ import { MetadataRoute } from 'next';
 import { SITE_URL } from '@/lib/seo';
 
 export default function robots(): MetadataRoute.Robots {
+  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || SITE_URL || 'https://palettehubb.com').replace(/\/+$/, '');
+
   return {
     rules: [
       {
@@ -20,8 +22,31 @@ export default function robots(): MetadataRoute.Robots {
           '/order-confirmation/*',
         ],
       },
+      {
+        userAgent: 'Googlebot',
+        allow: [
+          '/',
+          '/shop',
+          '/products/*',
+          '/about',
+          '/contact',
+          '/track-order',
+          '/privacy',
+          '/terms',
+          '/images/*',
+        ],
+        disallow: [
+          '/admin',
+          '/admin/*',
+          '/api/',
+          '/api/*',
+          '/supplier-dashboard',
+          '/checkout',
+          '/order-confirmation',
+        ],
+      },
     ],
-    sitemap: `${SITE_URL}/sitemap.xml`,
-    host: SITE_URL,
+    sitemap: `${baseUrl}/sitemap.xml`,
+    host: baseUrl,
   };
 }

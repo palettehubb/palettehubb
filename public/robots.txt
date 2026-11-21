@@ -1,0 +1,27 @@
+# PALETTE HUB Official Robots.txt
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /api/
+Disallow: /api/*
+Disallow: /supplier-dashboard
+Disallow: /supplier-dashboard/*
+Disallow: /checkout
+Disallow: /checkout/*
+Disallow: /order-confirmation
+Disallow: /order-confirmation/*
+
+User-agent: Googlebot
+Allow: /
+Allow: /shop
+Allow: /products/*
+Allow: /images/*
+Disallow: /admin
+Disallow: /api/
+Disallow: /supplier-dashboard
+Disallow: /checkout
+Disallow: /order-confirmation
+
+Sitemap: https://palettehubb.com/sitemap.xml
+Host: https://palettehubb.com
