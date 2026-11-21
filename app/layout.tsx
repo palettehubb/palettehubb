@@ -79,6 +79,9 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
+  verification: {
+    google: '_hFJdrDBvpj35Rc_2RXJFftOzG1fe3nFMW3tyt_Zx14',
+  },
 };
 
 export const instant = false;
@@ -96,6 +99,11 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/images/phlogo.jpeg" />
         <link rel="apple-touch-icon" href="/images/phlogo.jpeg" />
+        {/* Google Site Verification */}
+        <meta
+          name="google-site-verification"
+          content="_hFJdrDBvpj35Rc_2RXJFftOzG1fe3nFMW3tyt_Zx14"
+        />
         {/* Local SEO Meta Tags for Dubai & United Arab Emirates */}
         <meta name="geo.region" content={SITE_METADATA.geo.region} />
         <meta name="geo.placename" content={SITE_METADATA.geo.placename} />
